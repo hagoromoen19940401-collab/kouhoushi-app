@@ -1,0 +1,12 @@
+# OS
+.DS_Store
+
+# 動作確認用の一時ファイル
+_check/
+
+# 利用者データ（広報誌の保存ファイル）は上げない
+*.json
+
+# 元画像（アプリからは参照しない素材シート）
+assets/illustrations/_source/
+ChatGPT Image *.png

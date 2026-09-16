@@ -1,0 +1,4215 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>あっと峰夢 広報誌メーカー</title>
+  <style>
+    /* ===== Reset & Variables ===== */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary:   #f8a5c2;
+      --secondary: #a8d8ea;
+      --bg:    #fef9f5;
+      --text:  #4a4a4a;
+      --muted: #999;
+      --radius: 14px;
+      --shadow: 0 2px 12px rgba(0,0,0,.08);
+    }
+    body {
+      font-family: 'Hiragino Kaku Gothic ProN','Hiragino Sans','Meiryo',sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 14px;
+    }
+
+    /* ===== App Header ===== */
+    .app-header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      padding: 10px 16px;
+      display: flex; align-items: center; gap: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.15);
+      position: sticky; top: 0; z-index: 200;
+      flex-wrap: wrap;
+    }
+    .app-logo {
+      font-size: 17px; font-weight: bold; color: white;
+      text-shadow: 0 1px 3px rgba(0,0,0,.25); white-space: nowrap;
+    }
+    .toolbar { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+    .btn {
+      padding: 7px 14px; border: none; border-radius: 20px;
+      cursor: pointer; font-size: 12px; font-weight: bold;
+      transition: opacity .15s, transform .15s;
+      white-space: nowrap; font-family: inherit;
+    }
+    .btn:hover  { opacity: .85; transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn-white  { background: rgba(255,255,255,.9); color: #c06090; }
+    .btn-green  { background: #4caf50; color: white; }
+    .btn-blue   { background: #2196f3; color: white; }
+    .btn-orange { background: #ff9800; color: white; }
+    .btn-deco   { background: #e040fb; color: white; }
+    .btn-deco.active { background: #ad1457; }
+
+    /* ===== Main Layout ===== */
+    .main { display: flex; gap: 14px; padding: 14px; align-items: flex-start; }
+
+    /* ===== Left Panel ===== */
+    .left { width: 278px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; }
+
+    .upload-zone {
+      background: white; border: 2px dashed var(--primary);
+      border-radius: var(--radius); padding: 18px 10px;
+      text-align: center; cursor: pointer;
+      transition: background .2s, border-color .2s; user-select: none;
+    }
+    .upload-zone:hover, .upload-zone.drag-over { background: #fff0f8; border-color: #d05090; }
+    .upload-zone .icon { font-size: 28px; }
+    .upload-zone p { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+    #file-input { display: none; }
+
+    .panel-card { background: white; border-radius: var(--radius); padding: 12px; box-shadow: var(--shadow); }
+    .panel-card-title { font-size: 12px; font-weight: bold; color: var(--primary); margin-bottom: 8px; }
+    .theme-btns { display: flex; gap: 5px; }
+    .theme-btn {
+      flex: 1; padding: 6px 4px; border: none; border-radius: 10px;
+      cursor: pointer; font-size: 11px; font-weight: bold; color: white;
+      font-family: inherit; transition: opacity .15s;
+    }
+    .theme-btn:hover { opacity: .8; }
+    .hint-text { font-size: 11px; color: #bbb; line-height: 1.7; }
+
+    /* Photo list */
+    .photo-list-box {
+      background: white; border-radius: var(--radius); padding: 10px;
+      box-shadow: var(--shadow); overflow-y: auto;
+      max-height: calc(100vh - 370px); min-height: 80px;
+    }
+    .photo-item {
+      display: flex; align-items: flex-start; gap: 7px; padding: 6px;
+      border-radius: 8px; margin-bottom: 5px;
+      background: #fafafa; border: 1px solid #eee;
+    }
+    .photo-item.is-wide { border-left: 3px solid #7ec8e3; }
+    .drag-handle { cursor: grab; color: #ccc; font-size: 13px; flex-shrink: 0; padding-top: 2px; }
+    .photo-thumb { width: 42px; height: 42px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+    .photo-info { flex: 1; min-width: 0; }
+    .photo-name { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    /* 分類（ユーザー追加カテゴリ）の管理 */
+    .cat-add-row { display: flex; gap: 6px; }
+    .cat-name-input {
+      flex: 1; min-width: 0; padding: 4px 8px; border: 1px solid #ddd;
+      border-radius: 8px; font-size: 11px; font-family: inherit;
+    }
+    .cat-name-input:focus { outline: none; border-color: var(--primary); }
+    .cat-add-btn {
+      flex-shrink: 0; padding: 4px 9px; border: 1px dashed var(--primary);
+      border-radius: 10px; background: #fff7fb; color: var(--primary);
+      font-size: 11px; font-weight: bold; cursor: pointer;
+      font-family: inherit; white-space: nowrap;
+    }
+    .cat-add-btn:hover  { background: #ffeaf5; }
+    .cat-add-btn:active { transform: scale(.96); }
+    .cat-pal { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 7px; }
+    .cat-sw { width: 17px; height: 17px; border-radius: 50%; border: 1px solid rgba(0,0,0,.15);
+              cursor: pointer; padding: 0; }
+    .cat-sw.on { outline: 2px solid var(--primary); outline-offset: 1px; }
+    .cat-pick { width: 26px; height: 20px; padding: 0; border: 1px solid #ddd;
+                border-radius: 5px; background: none; cursor: pointer; }
+    .cat-chip input[type="color"] { width: 15px; height: 15px; padding: 0; border: none;
+              border-radius: 50%; background: none; cursor: pointer; flex-shrink: 0; }
+    .cat-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+    .cat-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 5px 3px 9px; border-radius: 11px; font-size: 11px; color: #fff;
+    }
+    .cat-chip button {
+      border: none; background: rgba(255,255,255,.35); color: #fff;
+      width: 15px; height: 15px; border-radius: 50%; padding: 0;
+      font-size: 9px; line-height: 1; cursor: pointer; font-family: inherit;
+    }
+    .cat-chip button:hover { background: rgba(255,255,255,.65); }
+    .cat-note { font-size: 10px; color: #bbb; line-height: 1.6; margin-top: 7px; }
+
+    .selects-row { display: flex; gap: 4px; margin-top: 3px; }
+    .cat-select {
+      flex: 1; padding: 3px 4px; border: 1px solid #ddd; border-radius: 6px;
+      font-size: 11px; background: white; font-family: inherit; min-width: 0;
+    }
+    .size-sel {
+      width: 52px; flex-shrink: 0; padding: 3px 2px;
+      border: 1px solid #ddd; border-radius: 6px;
+      font-size: 11px; background: white; font-family: inherit;
+    }
+    .photo-del { background: none; border: none; color: #f44336; cursor: pointer; font-size: 15px; padding: 2px; flex-shrink: 0; }
+    .empty-state { text-align: center; padding: 24px 10px; color: var(--muted); }
+    .empty-state .big { font-size: 36px; }
+
+    /* ===== Right Panel ===== */
+    .right { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+
+    .ctrl-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .ctrl-group {
+      display: flex; align-items: center; gap: 6px;
+      background: white; padding: 6px 12px;
+      border-radius: 20px; box-shadow: var(--shadow);
+    }
+    .ctrl-group label { font-size: 11px; color: var(--muted); }
+    .ctrl-group input, .ctrl-group select {
+      border: none; outline: none; font-size: 13px;
+      background: transparent; font-family: inherit;
+    }
+    .layout-badge { font-size: 11px; padding: 4px 12px; border-radius: 20px; font-weight: bold; white-space: nowrap; }
+    .badge-large  { background: #e8f5e9; color: #388e3c; }
+    .badge-medium { background: #e3f2fd; color: #1565c0; }
+    .badge-small  { background: #fff8e1; color: #f57f17; }
+    .badge-mini   { background: #fce4ec; color: #c62828; }
+
+    /* ===== Comment Generation Modal ===== */
+    .gen-modal { max-width:620px; max-height:90vh; overflow-y:auto; }
+    .gen-label { font-size:11px; color:var(--muted); display:block; margin-bottom:3px; font-weight:normal; }
+    .gen-input {
+      width:100%; padding:7px 10px; border:1px solid #ddd;
+      border-radius:8px; font-size:13px; font-family:inherit; background:white;
+    }
+    .gen-input:focus { outline:none; border-color:var(--primary); }
+    .gen-run-btn {
+      width:100%; padding:10px; border:none;
+      background:linear-gradient(135deg,var(--primary),var(--secondary));
+      color:white; border-radius:10px; font-size:14px; font-weight:bold;
+      cursor:pointer; font-family:inherit; margin:12px 0 4px;
+      transition:opacity .15s;
+    }
+    .gen-run-btn:hover { opacity:.88; }
+    .gen-divider {
+      font-size:11px; color:var(--muted); text-align:center;
+      padding:8px 0; border-top:1px solid #f0e8f0; margin:10px 0 8px;
+    }
+    .gen-pattern {
+      border:1px solid #f0e8f0; border-radius:10px;
+      padding:12px; margin-bottom:10px; background:#fafafa;
+    }
+    .gen-pat-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:7px; }
+    .gen-pat-label { font-size:12px; font-weight:bold; color:var(--primary); }
+    .gen-pat-count { font-size:11px; }
+    .gen-pat-ok    { color:#4caf50; }
+    .gen-pat-warn  { color:#ff9800; }
+    .gen-pat-ta {
+      width:100%; padding:8px; border:1px solid #eee; border-radius:8px;
+      font-size:13px; line-height:1.75; resize:vertical; min-height:76px;
+      font-family:inherit; background:white;
+    }
+    .gen-pat-ta:focus { outline:none; border-color:var(--primary); }
+    .gen-use-btn {
+      width:100%; margin-top:7px; padding:7px; border:none;
+      border-radius:8px; background:var(--primary); color:white;
+      font-size:13px; font-weight:bold; cursor:pointer; font-family:inherit;
+      transition:opacity .15s;
+    }
+    .gen-use-btn:hover { opacity:.85; }
+    .gen-regen-btn {
+      width:100%; padding:8px; margin-top:6px;
+      border:1px solid #ddd; border-radius:8px; background:white;
+      color:#666; font-size:13px; cursor:pointer; font-family:inherit;
+    }
+
+    /* ===== Deco Tray ===== */
+    .deco-tray {
+      background: white; border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 10px 14px;
+      overflow: hidden;
+    }
+    .deco-monthly-row {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+      padding-bottom: 10px; border-bottom: 1px solid #f0e8f0;
+    }
+    .deco-monthly-label { font-size: 11px; color: var(--primary); font-weight: bold; white-space: nowrap; }
+    .stamp-row { display: flex; gap: 4px; flex-wrap: wrap; }
+    .stamp-btn {
+      font-size: 22px; width: 38px; height: 38px;
+      border: 1px solid #eee; border-radius: 8px;
+      background: #fafafa; cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      transition: transform .1s, background .1s;
+      line-height: 1;
+    }
+    .stamp-btn:hover  { background: #fff0f8; transform: scale(1.15); border-color: var(--primary); }
+    .stamp-btn:active { transform: scale(.95); }
+    .deco-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+    .deco-tab {
+      padding: 4px 10px; border: none; border-radius: 12px;
+      font-size: 11px; cursor: pointer; background: #f5f5f5; color: #666;
+      font-family: inherit; transition: background .15s;
+    }
+    .deco-tab.active { background: var(--primary); color: white; }
+    .stamp-grid { display: flex; gap: 4px; flex-wrap: wrap; }
+
+    /* イラストスタンプ一覧 */
+    .illust-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+      gap: 6px; max-height: 268px; overflow-y: auto; padding: 2px;
+    }
+    .illust-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      padding: 4px 2px; border: 1px solid #eee; border-radius: 8px;
+      background: #fafafa; cursor: pointer; font-family: inherit;
+      transition: transform .1s, background .1s;
+    }
+    .illust-btn:hover  { background: #fff0f8; border-color: var(--primary); transform: scale(1.06); }
+    .illust-btn:active { transform: scale(.96); }
+    .illust-btn img    { width: 100%; height: 52px; object-fit: contain; display: block; }
+    .illust-btn span   { font-size: 9px; color: var(--muted); line-height: 1.2; text-align: center; }
+    .st-thumb { height: 26px; width: auto; display: block; }
+    .st-name  { font-size: 11px; color: var(--primary); font-weight: bold; white-space: nowrap; }
+    .st-name  { max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+
+    /* 画像スタンプの追加（ユーザー画像） */
+    .deco-upload-row {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #f0e8f0;
+    }
+    .deco-up-btn {
+      padding: 5px 12px; border: 1px dashed var(--primary); border-radius: 12px;
+      background: #fff7fb; color: var(--primary); font-size: 11px; font-weight: bold;
+      cursor: pointer; font-family: inherit; white-space: nowrap;
+    }
+    .deco-up-btn:hover  { background: #ffeaf5; }
+    .deco-up-btn:active { transform: scale(.96); }
+    .deco-up-hint { font-size: 10px; color: var(--muted); line-height: 1.4; }
+    .deco-text-input {
+      padding: 5px 10px; border: 1px solid #e5d5e5; border-radius: 12px;
+      font-size: 12px; font-family: inherit; width: 160px;
+    }
+    .deco-text-input:focus { outline: none; border-color: var(--primary); }
+    .deco-tray.drag-over { outline: 2px dashed var(--primary); outline-offset: -3px; background: #fff7fb; }
+    .nl-container.sticker-drop::after {
+      content: '🖼️ ここに画像スタンプを追加';
+      position: absolute; inset: 0; z-index: 90;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255,240,248,.5);
+      border: 3px dashed var(--primary); border-radius: 10px;
+      color: var(--primary); font-size: 15px; font-weight: bold;
+      pointer-events: none;
+    }
+    /* 画像スタンプ本体 */
+    .sticker img { width: 100%; height: auto; display: block; pointer-events: none; }
+    /* 自由配置テキスト（フォントは広報誌のものを継承） */
+    .sticker.st-txt { color: #000; font-weight: bold; }
+
+    /* 自由配置写真の直接操作ハンドル（選択中のみ表示・印刷では非表示） */
+    .sk-h, .sk-rot {
+      position: absolute; width: 14px; height: 14px; box-sizing: border-box;
+      background: #fff; border: 2px solid var(--primary); border-radius: 50%;
+      z-index: 2; pointer-events: all;
+    }
+    .sk-h.nw { left: -7px;  top: -7px;    cursor: nwse-resize; }
+    .sk-h.ne { right: -7px; top: -7px;    cursor: nesw-resize; }
+    .sk-h.sw { left: -7px;  bottom: -7px; cursor: nesw-resize; }
+    .sk-h.se { right: -7px; bottom: -7px; cursor: nwse-resize; }
+    .sk-rot  { left: 50%; top: -30px; transform: translateX(-50%); cursor: grab; }
+    .sk-rot:active { cursor: grabbing; }
+    .sk-rot::before {
+      content: ''; position: absolute; left: 50%; top: 12px; margin-left: -1px;
+      width: 2px; height: 18px; background: var(--primary); opacity: .6;
+    }
+
+    /* 自由配置写真：紙面上で写真らしく見せる（控えめに） */
+    .sticker[data-kind="photo"] img {
+      box-sizing: border-box;
+      border: 3px solid #fff; border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.18);
+    }
+
+    /* ===== Sticker Toolbar ===== */
+    .sticker-toolbar, .cell-toolbar {
+      background: white; border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 8px 14px;
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    /* 2つのツールバーは通常フローから外し、出し入れしても紙面が上下に動かないようにする。
+       同時には出ない（排他）ので、同じ位置に固定してよい。 */
+    .sticker-toolbar, .cell-toolbar {
+      position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+      z-index: 300; width: auto; max-width: calc(100vw - 32px);
+      box-shadow: 0 4px 18px rgba(0,0,0,.20);
+    }
+    .st-emoji { font-size: 24px; line-height: 1; }
+    .st-label { font-size: 11px; color: var(--muted); white-space: nowrap; }
+    .st-slider { width: 80px; accent-color: var(--primary); }
+    .st-group  { display: flex; align-items: center; gap: 8px; }
+    .st-text {
+      padding: 4px 9px; border: 1px solid #e5d5e5; border-radius: 10px;
+      font-size: 13px; font-family: inherit; width: 150px;
+    }
+    .st-text:focus { outline: none; border-color: var(--primary); }
+    .st-btn.on { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .st-divider { width: 1px; height: 24px; background: #eee; }
+    .st-btn {
+      padding: 5px 10px; border: 1px solid #eee; border-radius: 10px;
+      background: #fafafa; cursor: pointer; font-size: 12px;
+      font-family: inherit; transition: background .1s;
+    }
+    .st-btn:hover { background: #fff0f8; border-color: var(--primary); }
+    .st-btn.del   { color: #f44336; border-color: #ffcdd2; }
+    .st-btn.done  { background: var(--primary); color: white; border-color: var(--primary); }
+
+    /* ===== Newsletter ===== */
+    .nl-wrap { display: flex; justify-content: center; }
+    .nl-container {
+      width: 100%; max-width: 780px;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .newsletter {
+      width: 100%;
+      background: white; border-radius: 10px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.13);
+      overflow: hidden;
+    }
+
+    /* Sticker layer */
+    .sticker-layer {
+      position: absolute; inset: 0;
+      pointer-events: none;
+      z-index: 50;
+      overflow: hidden;
+      border-radius: 10px;
+    }
+
+    /* Individual sticker */
+    .sticker {
+      position: absolute;
+      pointer-events: all;
+      cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      transition: outline .1s;
+    }
+    .sticker:active { cursor: grabbing; }
+    .sticker.s-selected {
+      outline: 2px dashed var(--primary);
+      outline-offset: 4px;
+      border-radius: 6px;
+    }
+
+    /* NL Header */
+    .nl-header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      padding: 24px 28px 26px;
+      position: relative; overflow: hidden; text-align: center;
+    }
+    .nl-deco-l, .nl-deco-r { position: absolute; top: 8px; font-size: 32px; opacity: .35; line-height: 1; }
+    .nl-deco-l { left: 16px; }
+    .nl-deco-r { right: 16px; }
+    .nl-deco-bl { position: absolute; bottom: 4px; left: 28px; font-size: 18px; opacity: .25; }
+    [contenteditable] { outline: none; cursor: text; }
+    [contenteditable]:focus { background: rgba(255,255,255,.35); border-radius: 4px; }
+    .nl-main-title { font-size: 34px; font-weight: bold; color: white; text-shadow: 0 2px 6px rgba(0,0,0,.2); letter-spacing: 4px; display: inline-block; }
+    /* 季節ロゴ（選んだときだけ表示。文字タイトル・サブタイトル・上段の年月は隠す） */
+    .nl-logo { display: block; margin: 4px auto 2px; width: auto; height: auto;
+               max-width: 72%; max-height: 170px; }
+    .nl-header.has-logo { background: #fff; padding: 10px 24px 12px; }
+    /* 季節ロゴの左右装飾。絶対配置なのでヘッダーの高さは増えない。ロゴより後ろ・控えめ。 */
+    .hd-deco { position: absolute; top: 50%; transform: translateY(-50%);
+               z-index: 0; pointer-events: none; width: auto; }
+    .hd-deco.l { left: 10px; }
+    .hd-deco.r { right: 10px; }
+    .nl-logo { position: relative; z-index: 1; }
+    .nl-header.has-logo .nl-main-title,
+    .nl-header.has-logo .nl-subtitle,
+    .nl-header.has-logo .nl-date,
+    .nl-header.has-logo .nl-deco-l,
+    .nl-header.has-logo .nl-deco-r,
+    .nl-header.has-logo .nl-deco-bl { display: none !important; }
+    /* 施設名だけを見せる。値はJSONのために保持し、表示だけ止める */
+    .nl-subtitle   { font-size: 13px; color: rgba(255,255,255,.9); margin-top: 2px; display: none; }
+    .nl-date       { font-size: 15px; font-weight: bold; color: white; margin-top: 6px; display: none; }
+
+    /* NL Body */
+    .nl-body { padding: 16px 22px; }
+
+    .nl-warning {
+      background: #fff3cd; border: 1px solid #ffc107;
+      border-radius: 8px; padding: 8px 14px;
+      font-size: 12px; color: #856404; margin-bottom: 12px; text-align: center;
+      align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap;
+    }
+    .nl-warn-btn {
+      padding: 4px 12px; border: 1px solid #e0a800; border-radius: 12px;
+      background: #fff; color: #856404; font-size: 11px; font-weight: bold;
+      cursor: pointer; font-family: inherit; white-space: nowrap;
+    }
+    .nl-warn-btn:hover { background: #fff8e1; }
+    .nl-intro {
+      background: linear-gradient(135deg, #fff9e6, #fff5f8);
+      border-left: 4px solid var(--primary);
+      border-radius: 0 10px 10px 0;
+      padding: 11px 40px 11px 14px; margin-bottom: 16px;
+      font-size: 13px; line-height: 1.85; color: #555;
+      position: relative; cursor: pointer;
+    }
+    .nl-intro::after { content: '💌'; position: absolute; right: 10px; top: 10px; font-size: 16px; }
+    .nl-intro-hint  { font-size: 10px; color: #ccc; margin-top: 3px; font-style: italic; }
+
+    /* Birthday */
+    .birthday-corner {
+      /* 淡いクリーム〜ピンクのグラデに、細い金の外枠＋白リング＋細い金リングの二重額縁。
+         枠はすべて border 1px と inset 影なので、コーナーの高さは増えない（2px→1pxでむしろ微減）。 */
+      background: linear-gradient(140deg, #fffaf2 0%, #fff2f6 55%, #ffe9ef 100%);
+      border: 1px solid #e3c98f; border-radius: 14px;
+      box-shadow: inset 0 0 0 3px #fff,
+                  inset 0 0 0 4px rgba(198,160,92,.55),
+                  0 1px 4px rgba(200,150,120,.18);
+      padding: 13px 16px; margin-bottom: 16px;
+      position: relative; overflow: hidden;
+    }
+    /* 装飾は水彩PNG（OS依存の絵文字は使わない） */
+    .bd-deco-layer { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+    .bd-deco       { position: absolute; display: block; }
+    .birthday-title {
+      font-size: 16px; font-weight: bold; color: #c2708f; letter-spacing: 1px; margin-bottom: 10px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      position: relative; z-index: 1;
+    }
+    .bd-title-deco { height: 22px; width: auto; display: block; opacity: .9; }
+    .birthday-photos { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+                       position: relative; z-index: 1; }
+    .birthday-photo  { object-fit: cover; border-radius: 7px; border: 3px solid var(--primary); display: block; }
+
+    /* Sections */
+    .nl-section { margin-bottom: 18px; }
+    .nl-sec-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .nl-sec-title { font-size: 13px; font-weight: bold; color: white; padding: 5px 13px; border-radius: 20px; white-space: nowrap; }
+    .nl-sec-line  { flex: 1; height: 2px; border-radius: 2px; opacity: .35; }
+
+    /* Photo Grid */
+    .pg { display: grid; }
+    .pg-1 { grid-template-columns: 1fr; }
+    .pg-2 { grid-template-columns: repeat(2,1fr); }
+    .pg-3 { grid-template-columns: repeat(3,1fr); }
+    .pg-4 { grid-template-columns: repeat(4,1fr); }
+    .pg-5 { grid-template-columns: repeat(5,1fr); }
+    .pc-span2 { grid-column: span 2; }
+    .photo-cell { border-radius: 7px; overflow: hidden; aspect-ratio: 4/3; position: relative; cursor: grab; }
+    .photo-cell img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 7px; }
+    /* 写真の形とトリミング。clip-path は JS が算出して .pc-clip のインラインに入れる */
+    .pc-clip { position: absolute; inset: 0; }
+    /* 写真の縁（フレーム）。クリップ済みの絵に filter を掛けるので形の輪郭に沿う。
+       太さは --inv（adjの逆スケール）で割り、拡大しても一定に見えるようにする。 */
+    .pc-frame { position: absolute; inset: 0; }
+    .photo-cell.fr-white  .pc-clip,
+    .photo-cell.fr-black  .pc-clip { inset: calc(3px * var(--inv, 1)); }
+    .photo-cell.fr-gold   .pc-clip { inset: calc(2px * var(--inv, 1)); }
+    .photo-cell.fr-double .pc-clip { inset: calc(4px * var(--inv, 1)); }
+    .photo-cell.fr-photo  .pc-clip { inset: calc(5px * var(--inv, 1)); }
+    .fr-white .pc-frame {
+      filter: drop-shadow(calc(3px * var(--inv,1)) 0 0 #fff) drop-shadow(calc(-3px * var(--inv,1)) 0 0 #fff)
+              drop-shadow(0 calc(3px * var(--inv,1)) 0 #fff) drop-shadow(0 calc(-3px * var(--inv,1)) 0 #fff);
+    }
+    .fr-black .pc-frame {
+      filter: drop-shadow(calc(3px * var(--inv,1)) 0 0 #333) drop-shadow(calc(-3px * var(--inv,1)) 0 0 #333)
+              drop-shadow(0 calc(3px * var(--inv,1)) 0 #333) drop-shadow(0 calc(-3px * var(--inv,1)) 0 #333);
+    }
+    .fr-gold .pc-frame {
+      filter: drop-shadow(calc(2px * var(--inv,1)) 0 0 #c8a86a) drop-shadow(calc(-2px * var(--inv,1)) 0 0 #c8a86a)
+              drop-shadow(0 calc(2px * var(--inv,1)) 0 #c8a86a) drop-shadow(0 calc(-2px * var(--inv,1)) 0 #c8a86a);
+    }
+    .fr-double .pc-frame {
+      filter: drop-shadow(calc(2px * var(--inv,1)) 0 0 #fff) drop-shadow(calc(-2px * var(--inv,1)) 0 0 #fff)
+              drop-shadow(0 calc(2px * var(--inv,1)) 0 #fff) drop-shadow(0 calc(-2px * var(--inv,1)) 0 #fff)
+              drop-shadow(calc(1px * var(--inv,1)) 0 0 #c8a86a) drop-shadow(calc(-1px * var(--inv,1)) 0 0 #c8a86a)
+              drop-shadow(0 calc(1px * var(--inv,1)) 0 #c8a86a) drop-shadow(0 calc(-1px * var(--inv,1)) 0 #c8a86a);
+    }
+    .fr-photo .pc-frame {
+      filter: drop-shadow(calc(3px * var(--inv,1)) 0 0 #fff) drop-shadow(calc(-3px * var(--inv,1)) 0 0 #fff)
+              drop-shadow(0 calc(3px * var(--inv,1)) 0 #fff) drop-shadow(0 calc(-3px * var(--inv,1)) 0 #fff)
+              drop-shadow(0 calc(2px * var(--inv,1)) calc(3px * var(--inv,1)) rgba(0,0,0,.30));
+    }
+
+    /* トリミングハンドル（上下左右）。トリミング中だけ表示する */
+    .gc-t { position: absolute; background: var(--primary); border-radius: 3px; z-index: 4; display: none;
+            box-shadow: 0 0 0 1px #fff; }
+    .photo-cell.pc-crop .gc-t { display: block; }
+    .gc-t.t, .gc-t.b { left: 25%; right: 25%; height: 7px; cursor: ns-resize; }
+    .gc-t.l, .gc-t.r { top: 25%; bottom: 25%; width: 7px; cursor: ew-resize; }
+    /* トリミング中は枠を動かさない（ハンドル操作だけ受け付ける） */
+    .photo-cell.pc-crop { cursor: default; }
+    .photo-cell.pc-crop .gc-h, .photo-cell.pc-crop .gc-rot { display: none; }
+    .photo-cell:active { cursor: grabbing; }
+
+    /* 自動レイアウト写真の直接編集（グリッドの枠は動かさず transform だけで調整する） */
+    .photo-cell.pc-sel {
+      overflow: visible;                     /* ハンドルを枠外に出すため */
+      outline: 2px dashed var(--primary); outline-offset: 3px;
+    }
+    .gc-h, .gc-rot {
+      position: absolute; width: 13px; height: 13px; box-sizing: border-box;
+      background: #fff; border: 2px solid var(--primary); border-radius: 50%;
+      z-index: 3; transform: scale(var(--inv, 1));   /* 拡大してもハンドルは同じ大きさ */
+    }
+    .gc-h.nw { left: -6px;  top: -6px;    cursor: nwse-resize; }
+    .gc-h.ne { right: -6px; top: -6px;    cursor: nesw-resize; }
+    .gc-h.sw { left: -6px;  bottom: -6px; cursor: nesw-resize; }
+    .gc-h.se { right: -6px; bottom: -6px; cursor: nwse-resize; }
+    .gc-rot  { left: 50%; top: -26px; cursor: grab;
+               transform: translateX(-50%) scale(var(--inv, 1)); }
+    .gc-rot::before {
+      content: ''; position: absolute; left: 50%; top: 11px; margin-left: -1px;
+      width: 2px; height: 15px; background: var(--primary); opacity: .6;
+    }
+
+    /* NL Footer */
+    .nl-footer { background: linear-gradient(135deg, var(--secondary), var(--primary)); padding: 10px 22px; text-align: center; color: white; font-size: 12px; }
+
+    /* ===== Modal ===== */
+    .modal-ov { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 500; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .modal { background: white; border-radius: var(--radius); padding: 22px; max-width: 460px; width: 100%; box-shadow: 0 8px 32px rgba(0,0,0,.22); }
+    .modal-title { font-size: 16px; font-weight: bold; color: var(--primary); margin-bottom: 12px; }
+    .modal textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; line-height: 1.75; resize: vertical; min-height: 120px; font-family: inherit; }
+    .modal-foot  { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+    .modal-count { font-size: 11px; color: #aaa; margin-top: 3px; }
+
+    /* ===== Print ===== */
+    @page { size: 182mm 257mm; margin: 6mm; }    /* JIS B5縦（CSSの size:B5 は ISO B5 なので実寸で指定） */
+    @media print {
+      .app-header, .left, .ctrl-bar, .deco-tray, .sticker-toolbar, .cell-toolbar { display: none !important; }
+      body { background: white; }
+      .main { padding: 0; display: block; }
+      .right { display: block; }
+      /* 縮小後の幅を持たせたうえで左右 auto にし、B5印刷可能領域の横中央へ置く。
+         中身（紙面・スタンプ層）はまとめて動くので相対位置は変わらない。 */
+      .nl-wrap { display: block; overflow: hidden;
+                 width: var(--print-w, auto); height: var(--print-h, auto);
+                 margin-left: auto; margin-right: auto; }
+      /* printFit() が算出した倍率。未算出なら等倍 */
+      .nl-container { transform: scale(var(--print-scale, 1)); transform-origin: top left; }
+      .newsletter { border-radius: 0; box-shadow: none; width: 100%; max-width: 100%; }
+      .nl-section, .birthday-corner, .photo-cell {
+        break-inside: avoid; page-break-inside: avoid; -webkit-column-break-inside: avoid;
+      }
+      .sticker-layer { border-radius: 0; }
+      /* 編集用の表示は印刷物に出さない */
+      .sticker.s-selected { outline: none !important; }
+      .sk-h, .sk-rot { display: none !important; }
+      .gc-h, .gc-rot { display: none !important; }
+      .photo-cell.pc-sel { outline: none !important; overflow: hidden !important; }
+      .nl-warning { display: none !important; }
+      .nl-intro-hint { visibility: hidden !important; }   /* 高さを残してスタンプの位置ずれを防ぐ */
+      * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+
+    /* ===== Responsive ===== */
+    /* screen 限定。印刷時はレイアウト幅がB5の印刷可能幅(約643px)になるため、
+       screen を付けないとこの指定が @media print を上書きしてしまう。 */
+    @media screen and (max-width: 760px) {
+      .main { flex-direction: column; padding: 10px; }
+      .left { width: 100%; }
+      .photo-list-box { max-height: 220px; }
+      .nl-main-title { font-size: 26px; }
+      .pg-4 { grid-template-columns: repeat(3,1fr); }
+      .pg-5 { grid-template-columns: repeat(3,1fr); }
+    }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ===== App Header ===== -->
+<header class="app-header">
+  <span class="app-logo">📰 あっと峰夢 広報誌メーカー</span>
+  <div class="toolbar">
+    <button class="btn btn-white"  onclick="runAutoLayout()">🔄 自動レイアウト</button>
+    <button class="btn btn-white"  onclick="showGenModal()">✨ コメント生成</button>
+    <button class="btn btn-deco"   id="btn-deco" onclick="toggleDecoPanel()">🎨 装飾</button>
+    <button class="btn btn-green"  onclick="saveJSON()">💾 保存</button>
+    <button class="btn btn-blue"   onclick="triggerLoad()">📂 読込</button>
+    <button class="btn btn-orange" onclick="printFit()">🖨️ 印刷</button>
+  </div>
+</header>
+
+<!-- ===== Main ===== -->
+<div class="main">
+
+  <!-- Left Panel -->
+  <div class="left">
+    <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+      <div class="icon">📸</div>
+      <p>写真をドラッグ＆ドロップ<br>またはタップして選択</p>
+      <input type="file" id="file-input" accept="image/*" multiple>
+    </div>
+
+    <div class="panel-card">
+      <div class="panel-card-title">🎨 カラーテーマ</div>
+      <div class="theme-btns">
+        <button class="theme-btn" style="background:#f8a5c2" onclick="setTheme('spring')">🌸 春</button>
+        <button class="theme-btn" style="background:#7ec8e3" onclick="setTheme('summer')">🌊 夏</button>
+        <button class="theme-btn" style="background:#ffb347" onclick="setTheme('autumn')">🍁 秋</button>
+        <button class="theme-btn" style="background:#9bb8d4" onclick="setTheme('winter')">❄️ 冬</button>
+      </div>
+    </div>
+
+    <div class="panel-card">
+      <div class="panel-card-title">💡 自動分類ヒント</div>
+      <div class="hint-text">
+        ファイル名で自動分類：<br>
+        「誕生・birth」→ 誕生日<br>
+        「行事・event」→ 行事<br>
+        「茶話・お茶」→ 茶話会<br>
+        「食事・meal・昼」→ 食事<br>
+        「季節・花見・雪」→ 季節
+      </div>
+    </div>
+
+    <div class="panel-card" style="padding:10px 12px">
+      <div class="panel-card-title" style="margin:0 0 7px">📄 紙面の文字</div>
+      <div class="cat-add-row" style="margin-bottom:9px">
+        <select class="cat-select" id="logo-mode" onchange="setLogoMode(this.value)"></select>
+      </div>
+      <div class="cat-add-row" style="margin-bottom:6px">
+        <input class="cat-name-input" id="hdr-text" type="text" style="width:100%"
+               placeholder="上部の名称" oninput="setHeadText(this.value)">
+      </div>
+      <div class="cat-add-row" style="margin-bottom:9px">
+        <select class="cat-select" id="hdr-font" onchange="setPaperFont('head',this.value)"></select>
+        <select class="cat-select" id="hdr-size" style="width:52px;flex:none" onchange="setPaperSize('head',this.value)">
+          <option value="small">小</option><option value="normal">標準</option><option value="large">大</option>
+        </select>
+      </div>
+      <div class="cat-add-row" style="margin-bottom:6px">
+        <input class="cat-name-input" id="ftr-text" type="text" style="width:100%"
+               placeholder="下部の名称" oninput="setFootText(this.value)">
+      </div>
+      <div class="cat-add-row">
+        <select class="cat-select" id="ftr-font" onchange="setPaperFont('foot',this.value)"></select>
+        <select class="cat-select" id="ftr-size" style="width:52px;flex:none" onchange="setPaperSize('foot',this.value)">
+          <option value="small">小</option><option value="normal">標準</option><option value="large">大</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="panel-card" style="padding:10px 12px">
+      <div class="panel-card-title" style="margin:0 0 7px">🏷 分類</div>
+      <div class="cat-add-row">
+        <input class="cat-name-input" id="cat-name-input" type="text" maxlength="20"
+               placeholder="例：敬老会"
+               onkeydown="if(event.key==='Enter')addCustomCategory()">
+        <button class="cat-add-btn" onclick="addCustomCategory()">＋カテゴリ追加</button>
+      </div>
+      <div class="cat-pal" id="cat-pal"></div>
+      <div class="cat-chips" id="cat-chips"></div>
+      <div class="cat-note">分類を増やすと印刷時に縮小されます。<br>3〜4分類・各2〜3枚程度がおすすめです。</div>
+    </div>
+
+    <div class="panel-card" style="padding:10px 12px">
+      <div class="panel-card-title" style="margin:0">
+        📷 写真一覧（<span id="photo-count">0</span>枚）
+        <span style="font-size:10px;color:#bbb;font-weight:normal;margin-left:4px">↔=2列幅</span>
+      </div>
+    </div>
+    <div class="photo-list-box" id="photo-list">
+      <div class="empty-state">
+        <div class="big">🖼️</div>
+        <p style="margin-top:8px;font-size:12px">写真をアップロードしてください</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="right">
+
+    <!-- Controls -->
+    <div class="ctrl-bar">
+      <div class="ctrl-group">
+        <label>施設名</label>
+        <input id="facility-name" type="text" value="特別養護老人ホーム あっと峰夢" style="width:185px">
+      </div>
+      <div class="ctrl-group">
+        <label>年</label>
+        <input id="pub-year" type="number" style="width:56px" min="2000" max="2050">
+        <label>月</label>
+        <input id="pub-month" type="number" style="width:36px" min="1" max="12">
+      </div>
+      <div class="ctrl-group">
+        <label>レイアウト</label>
+        <select id="layout-mode" onchange="state.layoutMode=this.value">
+          <option value="auto">自動</option>
+          <option value="large">写真大きめ</option>
+          <option value="many">写真多め</option>
+          <option value="birthday">誕生日重視</option>
+          <option value="event">行事重視</option>
+        </select>
+      </div>
+      <div id="layout-badge-wrap" style="display:none">
+        <span id="layout-badge" class="layout-badge"></span>
+      </div>
+      <button class="btn btn-white" style="background:white;color:#c06090;box-shadow:var(--shadow)"
+              onclick="showCommentEditor()">✏️ コメント編集</button>
+    </div>
+
+    <!-- Decoration Tray (collapsible) -->
+    <div class="deco-tray" id="deco-tray" style="display:none">
+      <div class="deco-upload-row">
+        <span class="deco-monthly-label">🖼️ 画像を追加</span>
+        <button class="deco-up-btn" onclick="openFreePhotoPicker()">＋ 写真を自由配置</button>
+        <button class="deco-up-btn" onclick="document.getElementById('sticker-img-input').click()">＋ イラスト画像</button>
+        <span class="deco-up-hint">PNG / JPEG / WebP（複数まとめて可）。広報誌の上へドラッグ＆ドロップすると「自由配置写真」になります</span>
+      </div>
+      <div class="deco-upload-row">
+        <span class="deco-monthly-label">✏️ テキスト</span>
+        <input class="deco-text-input" id="deco-text-input" type="text" maxlength="200"
+               placeholder="例：敬老の日" onkeydown="if(event.key==='Enter')addTextStickerFromPanel()">
+        <button class="deco-up-btn" onclick="addTextStickerFromPanel()">＋ テキストを追加</button>
+        <span class="deco-up-hint">追加後はツールバーで 文字 / 横書き・縦書き / サイズ / 角度 を変えられます</span>
+      </div>
+      <div class="deco-monthly-row">
+        <span class="deco-monthly-label">✨ 今月のおすすめ</span>
+        <div class="stamp-row" id="monthly-stamps"></div>
+      </div>
+      <div class="deco-tabs" id="deco-tabs"></div>
+      <div class="stamp-grid" id="deco-stamps"></div>
+    </div>
+
+    <!-- Sticker Edit Toolbar (shown when sticker selected) -->
+    <div class="sticker-toolbar" id="sticker-toolbar" style="display:none">
+      <span class="st-emoji" id="st-emoji"></span>
+      <span class="st-group" id="st-text-group" style="display:none">
+        <span class="st-label">文字</span>
+        <input class="st-text" id="st-text" type="text" maxlength="200"
+               oninput="stickerTextSet(this.value)">
+        <div class="st-divider"></div>
+        <button class="st-btn" id="st-dir-h" onclick="stickerDirSet('horizontal')">横書き</button>
+        <button class="st-btn" id="st-dir-v" onclick="stickerDirSet('vertical')">縦書き</button>
+        <div class="st-divider"></div>
+        <span class="st-label">字体</span>
+        <select class="cat-select" id="st-font" style="width:auto;flex:none"
+                onchange="stickerFontSet(this.value)"></select>
+        <div class="st-divider"></div>
+      </span>
+      <span class="st-label">サイズ</span>
+      <input class="st-slider" id="st-size" type="range" min="16" max="120" step="4"
+             oninput="stickerSizeSet(+this.value)">
+      <div class="st-divider"></div>
+      <span class="st-label">角度</span>
+      <input class="st-slider" id="st-rotate" type="range" min="-180" max="180" step="5"
+             oninput="stickerRotateSet(+this.value)">
+      <div class="st-divider"></div>
+      <button class="st-btn" onclick="stickerZ(+1)" title="前面へ">↑前面</button>
+      <button class="st-btn" onclick="stickerZ(-1)" title="背面へ">↓背面</button>
+      <button class="st-btn" id="st-back-btn" style="display:none"
+              onclick="backToAutoLayout()" title="自動レイアウトの写真に戻す">↩ 自動レイアウトへ戻す</button>
+      <button class="st-btn del"  onclick="stickerDelete()">✕ 削除</button>
+      <button class="st-btn done" onclick="deselectSticker()">✓ 完了</button>
+    </div>
+
+    <!-- 自動レイアウト写真を選んだときのツールバー -->
+    <div class="cell-toolbar" id="cell-toolbar" style="display:none">
+      <span class="st-label" id="cell-name"></span>
+      <div class="st-divider"></div>
+      <span class="st-group" id="cell-normal">
+        <span class="st-label">形</span>
+        <button class="st-btn" id="shp-rect"   onclick="setShape('rect')">四角</button>
+        <button class="st-btn" id="shp-circle" onclick="setShape('circle')">丸</button>
+        <div class="st-divider"></div>
+        <span class="st-label">縁</span>
+        <select class="cat-select" id="frm-sel" style="width:auto;flex:none" onchange="setFrame(this.value)">
+          <option value="none">なし</option>
+          <option value="white">白フチ</option>
+          <option value="black">黒フチ</option>
+          <option value="gold">細い金フチ</option>
+          <option value="double">二重線</option>
+          <option value="photo">写真風</option>
+        </select>
+        <div class="st-divider"></div>
+        <button class="st-btn" onclick="enterCropMode()" title="写真の上下左右を削る">トリミング</button>
+        <div class="st-divider"></div>
+        <button class="st-btn" onclick="gridZ(1)"  title="前面へ">↑ 前面</button>
+        <button class="st-btn" onclick="gridZ(-1)" title="背面へ">↓ 背面</button>
+        <button class="st-btn" onclick="gridReset()" title="自動レイアウトの位置・大きさに戻す">↩ 元に戻す</button>
+        <button class="st-btn" onclick="gridToFree()" title="紙面のどこへでも置けるようにする">⤢ 自由配置にする</button>
+        <button class="st-btn done" onclick="deselectGridPhoto()">✓ 完了</button>
+      </span>
+      <span class="st-group" id="cell-crop" style="display:none">
+        <span class="st-label">上下左右のハンドルを内側へドラッグして削ります</span>
+        <div class="st-divider"></div>
+        <button class="st-btn" onclick="cropReset()">リセット</button>
+        <button class="st-btn done" onclick="exitCropMode()">✓ 完了</button>
+      </span>
+    </div>
+
+    <!-- Newsletter -->
+    <div class="nl-wrap" id="nl-wrap">
+      <div class="nl-container" id="nl-container">
+
+        <div class="newsletter" id="newsletter">
+          <!-- Header -->
+          <div class="nl-header">
+            <span class="nl-deco-l" id="nl-deco-l">🌸</span>
+            <span class="nl-deco-r" id="nl-deco-r">🌸</span>
+            <span class="nl-deco-bl">🌸</span>
+            <img class="hd-deco l" id="hd-deco-l" alt="" style="display:none">
+            <img class="hd-deco r" id="hd-deco-r" alt="" style="display:none">
+            <img class="nl-logo" id="nl-logo" alt="" style="display:none">
+            <div class="nl-main-title" id="nl-main-title" contenteditable="true">あっと峰夢</div>
+            <div class="nl-subtitle"   id="nl-subtitle"   contenteditable="true">特別養護老人ホーム 広報誌</div>
+            <div class="nl-date"       id="nl-date"></div>
+          </div>
+
+          <!-- Body -->
+          <div class="nl-body">
+            <div id="nl-warning" class="nl-warning" style="display:none">
+              <span id="nl-warning-text"></span>
+              <button class="nl-warn-btn" onclick="openFreePhotoPicker()">写真を自由配置で追加</button>
+            </div>
+            <div class="nl-intro" id="nl-intro" onclick="showCommentEditor()">
+              <div id="nl-intro-text">写真をアップロードして「自動レイアウト」ボタンを押すと、広報誌が自動生成されます ✨</div>
+              <div class="nl-intro-hint">タップして編集</div>
+            </div>
+            <div class="birthday-corner" id="birthday-corner" style="display:none">
+              <div class="bd-deco-layer" id="birthday-deco"></div>
+              <div class="birthday-title">
+                <img class="bd-title-deco" src="assets/illustrations/deco-ribbon.png" alt="">
+                <span>お誕生日おめでとうございます</span>
+                <img class="bd-title-deco" src="assets/illustrations/deco-ribbon.png" alt="">
+              </div>
+              <div class="birthday-photos" id="birthday-photos"></div>
+            </div>
+            <div id="nl-sections"></div>
+          </div>
+
+          <!-- Footer -->
+          <div class="nl-footer">
+            <span id="footer-facility">特別養護老人ホーム あっと峰夢</span>
+            ｜ <span id="footer-date"></span>
+          </div>
+        </div>
+
+        <!-- Sticker Layer (above newsletter content) -->
+        <div id="sticker-layer" class="sticker-layer"></div>
+
+      </div><!-- /nl-container -->
+    </div><!-- /nl-wrap -->
+
+  </div><!-- /right -->
+</div><!-- /main -->
+
+<!-- Comment Generation Modal -->
+<div class="modal-ov" id="gen-modal" style="display:none" onclick="closeGenModalBg(event)">
+  <div class="modal gen-modal">
+    <div class="modal-title">✨ コメント自動生成</div>
+
+    <!-- Type + Month -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div>
+        <label class="gen-label">コメントタイプ</label>
+        <select id="gen-type" class="gen-input">
+          <option value="gentle">やさしい雰囲気</option>
+          <option value="seasonal">季節感重視</option>
+          <option value="events">行事紹介重視</option>
+          <option value="daily">日常の様子重視</option>
+          <option value="family">ご家族向け丁寧</option>
+          <option value="frank">フランクで温かい</option>
+          <option value="chief">主任コメント風</option>
+          <option value="short">短め</option>
+          <option value="full">しっかりめ</option>
+        </select>
+      </div>
+      <div>
+        <label class="gen-label">月</label>
+        <select id="gen-month" class="gen-input">
+          <option value="1">1月</option><option value="2">2月</option>
+          <option value="3">3月</option><option value="4">4月</option>
+          <option value="5">5月</option><option value="6">6月</option>
+          <option value="7">7月</option><option value="8">8月</option>
+          <option value="9">9月</option><option value="10">10月</option>
+          <option value="11">11月</option><option value="12">12月</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Inputs -->
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px">
+      <div>
+        <label class="gen-label">主な行事・活動</label>
+        <input id="gen-events" class="gen-input" type="text" placeholder="茶話会、誕生日会 など">
+      </div>
+      <div>
+        <label class="gen-label">印象的だった様子</label>
+        <input id="gen-impression" class="gen-input" type="text" placeholder="笑顔が多かった、穏やかに過ごされた など">
+      </div>
+      <div>
+        <label class="gen-label">季節ワード（任意）</label>
+        <input id="gen-seasonal" class="gen-input" type="text" placeholder="桜、春の陽気 など">
+      </div>
+      <div>
+        <label class="gen-label">職員からの一言（任意）</label>
+        <input id="gen-staff" class="gen-input" type="text" placeholder="皆様の笑顔に私たちも元気をもらっています など">
+      </div>
+    </div>
+
+    <button class="gen-run-btn" onclick="runGenerate()">✨ 3パターン生成</button>
+
+    <!-- Results -->
+    <div id="gen-results" style="display:none">
+      <div class="gen-divider">── 生成結果（そのまま編集できます）──</div>
+
+      <div class="gen-pattern">
+        <div class="gen-pat-head">
+          <span class="gen-pat-label" id="lbl-a">パターンA：やさしい</span>
+          <span class="gen-pat-count" id="cnt-a"></span>
+        </div>
+        <textarea class="gen-pat-ta" id="gta-a" oninput="updateGenCount('a')"></textarea>
+        <button class="gen-use-btn" onclick="usePattern('a')">このパターンを使う</button>
+      </div>
+
+      <div class="gen-pattern">
+        <div class="gen-pat-head">
+          <span class="gen-pat-label" id="lbl-b">パターンB：季節感</span>
+          <span class="gen-pat-count" id="cnt-b"></span>
+        </div>
+        <textarea class="gen-pat-ta" id="gta-b" oninput="updateGenCount('b')"></textarea>
+        <button class="gen-use-btn" onclick="usePattern('b')">このパターンを使う</button>
+      </div>
+
+      <div class="gen-pattern">
+        <div class="gen-pat-head">
+          <span class="gen-pat-label" id="lbl-c">パターンC：しっかり</span>
+          <span class="gen-pat-count" id="cnt-c"></span>
+        </div>
+        <textarea class="gen-pat-ta" id="gta-c" oninput="updateGenCount('c')"></textarea>
+        <button class="gen-use-btn" onclick="usePattern('c')">このパターンを使う</button>
+      </div>
+
+      <button class="gen-regen-btn" onclick="runGenerate()">🔄 もう一度生成（別の言い回し）</button>
+    </div>
+
+    <div class="modal-foot" style="margin-top:12px">
+      <button class="btn" style="background:#eee;color:#666" onclick="closeGenModal()">✕ 閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- Comment Modal -->
+<div class="modal-ov" id="comment-modal" style="display:none" onclick="closeModalOv(event)">
+  <div class="modal">
+    <div class="modal-title">✏️ 巻頭コメント編集</div>
+    <textarea id="comment-ta" placeholder="この月の様子を入力してください…"></textarea>
+    <div class="modal-count"><span id="char-count">0</span> 文字</div>
+    <div class="modal-foot">
+      <button class="btn" style="background:#eee;color:#666" onclick="closeCommentModal()">キャンセル</button>
+      <button class="btn" style="background:var(--primary);color:white" onclick="applyComment()">適用</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="load-input" accept=".json" style="display:none" onchange="handleLoad(event)">
+<!-- 画像スタンプ用（写真アップロードの #file-input とは別系統） -->
+<input type="file" id="sticker-img-input" accept="image/png,image/jpeg,image/webp" multiple
+       style="display:none" onchange="handleStickerFileInput(event)">
+<!-- 自由配置写真用（自動レイアウト用の #file-input とは別系統） -->
+<input type="file" id="free-photo-input" accept="image/png,image/jpeg,image/webp" multiple
+       style="display:none" onchange="handleFreePhotoInput(event)">
+
+<script>
+// ============================================================
+// CONSTANTS
+// ============================================================
+const CATS = [
+  { id:'birthday', label:'誕生日',      icon:'🎂', color:'#f48fb1' },
+  { id:'event',    label:'行事',        icon:'🎉', color:'#7ec8e3' },
+  { id:'daily',    label:'日常',        icon:'☀️', color:'#80cbc4' },
+  { id:'tea',      label:'茶話会',      icon:'🍵', color:'#ffcc80' },
+  { id:'meal',     label:'食事',        icon:'🍱', color:'#ffb74d' },
+  { id:'season',   label:'季節イベント', icon:'🌸', color:'#ce93d8' },
+  { id:'other',    label:'その他',      icon:'📌', color:'#90a4ae' },
+];
+
+const SEC_ORDER = [
+  { id:'event',  label:'行事・イベント', icon:'🎉', color:'#7ec8e3' },
+  { id:'season', label:'季節のイベント', icon:'🌸', color:'#ce93d8' },
+  { id:'tea',    label:'茶話会',         icon:'🍵', color:'#ffcc80' },
+  { id:'meal',   label:'食事の様子',     icon:'🍱', color:'#ffb74d' },
+  { id:'daily',  label:'日常の一コマ',   icon:'☀️', color:'#80cbc4' },
+  { id:'other',  label:'その他',         icon:'📌', color:'#90a4ae' },
+];
+
+const THEME_CONFIG = {
+  spring: { primary:'#f8a5c2', secondary:'#a8d8ea', deco:'🌸' },
+  summer: { primary:'#7ec8e3', secondary:'#a8e6cf', deco:'🌊' },
+  autumn: { primary:'#ffb347', secondary:'#ffcc99', deco:'🍁' },
+  winter: { primary:'#b0c4de', secondary:'#d4e8ff', deco:'❄️' },
+};
+
+const DENSITY_CFG = {
+  large:  { maxCols:2, gap:10, bdSize:115, label:'大きめ表示', badgeClass:'badge-large'  },
+  medium: { maxCols:3, gap:8,  bdSize:92,  label:'標準表示',   badgeClass:'badge-medium' },
+  small:  { maxCols:3, gap:7,  bdSize:76,  label:'コンパクト', badgeClass:'badge-small'  },
+  mini:   { maxCols:4, gap:5,  bdSize:60,  label:'ミニ表示',   badgeClass:'badge-mini'   },
+};
+
+const COMMENTS = {
+  spring: [
+    '春の暖かさを感じる季節となりました。{events}などを通して、利用者様のたくさんの笑顔が見られました。穏やかで心豊かな時間をお過ごしいただいています。',
+    '桜の便りが届く季節となりました。{events}など、春らしい活動をともに楽しみました。皆様の生き生きとした表情がとても印象的でした。',
+    'やわらかな春の光のもと、{events}を通じて、笑顔あふれる一ヶ月を過ごすことができました。',
+  ],
+  summer: [
+    '夏の輝きに負けないほど、利用者様の笑顔が光る季節となりました。{events}など、賑やかな活動が続いています。',
+    '暑さの中にも笑顔が咲く季節となりました。{events}を通じて、利用者様に活力あふれる時間をお過ごしいただきました。',
+    '夏の日差しが眩しい季節、{events}などを元気に楽しまれる皆様の姿に、私たちもたくさんの元気をいただきました。',
+  ],
+  autumn: [
+    '秋の深まりとともに、心温まる時間が続いています。{events}など、利用者様の笑顔があふれる一ヶ月となりました。',
+    '紅葉が美しい季節となりました。{events}を通じて、穏やかで充実した日々をお過ごしいただきました。',
+    '実りの秋を迎えました。{events}など、皆様と一緒に楽しいひとときを共有できました。',
+  ],
+  winter: [
+    '冬の寒さの中にも、温かな笑顔が咲いています。{events}など、利用者様が生き生きと活動される姿が印象的でした。',
+    'ひんやりした空気の中、{events}などを通じて、心温まるひとときをお届けできました。',
+    '寒い季節も、皆様の笑顔で施設全体が温かく感じられます。{events}など、楽しい時間を共に過ごしました。',
+  ],
+};
+
+// ===== Decoration Stamps =====
+const STAMP_GROUPS = [
+  { id:'spring',   label:'🌸 春',   stamps:['🌸','🌺','🌷','🌼','🌻','🦋','🌱','🍀','🐝','🌈'] },
+  { id:'summer',   label:'🌊 夏',   stamps:['🌊','🐚','🌴','🎆','🎇','🍦','☀️','🌞','🎐','🏖️'] },
+  { id:'autumn',   label:'🍁 秋',   stamps:['🍁','🍂','🎃','🌕','🍄','🌾','🦔','🍇','🌰','🎑'] },
+  { id:'winter',   label:'❄️ 冬',   stamps:['❄️','⛄','🎄','🎍','🕯️','🌨️','🧣','🎅','⛪','🎁'] },
+  { id:'birthday', label:'🎂 誕生日', stamps:['🎂','🎉','🎊','🎈','🎁','🥳','🎀','💝','🌟','✨'] },
+  { id:'daily',    label:'💐 日常',  stamps:['💐','🌿','🍵','☕','🎵','🎶','💕','❤️','⭐','💫','✨','🌙','🌈','🕊️'] },
+  { id:'event',    label:'🎎 行事',  stamps:['🎎','🎏','🎋','🎑','🎠','🎡','🎆','🎇','🏮','🪅'] },
+  { id:'illust',   label:'🖼️ イラスト', stamps:[] },   // 画像スタンプ（ILLUSTRATIONS を表示）
+];
+
+/** assets/illustrations/ の画像スタンプ一覧（file は拡張子なしのファイル名） */
+const ILLUST_DIR = 'assets/illustrations';
+const ILLUSTRATIONS = [
+  { file:'hanami',       label:'お花見' },      { file:'shinnendo',  label:'入学・新年度' },
+  { file:'koinobori',    label:'こどもの日' },   { file:'hahanohi',   label:'母の日' },
+  { file:'chichinohi',   label:'父の日' },      { file:'tanabata',   label:'七夕' },
+  { file:'natsumatsuri', label:'夏祭り' },      { file:'hanabi',     label:'花火大会' },
+  { file:'keirou',       label:'敬老の日' },     { file:'tsukimi',    label:'お月見' },
+  { file:'halloween',    label:'ハロウィン' },   { file:'kouyou',     label:'紅葉' },
+  { file:'christmas',    label:'クリスマス' },   { file:'shogatsu',   label:'お正月' },
+  { file:'setsubun',     label:'節分' },        { file:'hinamatsuri',label:'ひな祭り' },
+  { file:'sawakai',      label:'茶話会' },      { file:'birthday',   label:'誕生日会' },
+  { file:'undoukai',     label:'運動会' },      { file:'taiso',      label:'体操' },
+  { file:'shodo',        label:'書道' },        { file:'engei',      label:'園芸・花の手入れ' },
+  { file:'ryori',        label:'料理・おやつ作り' }, { file:'karaoke', label:'カラオケ' },
+  // 装飾ワンポイント（水彩・透過）
+  { file:'deco-stars',    label:'星とキラキラ' },  { file:'deco-bouquet',   label:'花束' },
+  { file:'deco-ribbon',   label:'リボン' },        { file:'deco-balloons',  label:'ハート風船' },
+  { file:'deco-music',    label:'音符' },          { file:'deco-tea',       label:'ティーセット' },
+  { file:'deco-sakura',   label:'桜の枝' },        { file:'deco-autumn',    label:'紅葉とどんぐり' },
+  { file:'deco-xmas',     label:'柊とリボン' },    { file:'deco-sunflower', label:'ひまわり' },
+];
+
+/** ユーザーが追加する画像スタンプの設定 */
+const STICKER_IMG_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+const STICKER_IMG_MAX   = 900;                                  // 取り込み時の縮小上限（長辺px）
+const STICKER_IMG_INIT  = 160;                                  // 追加直後の表示サイズ（長辺px）
+const USER_IMG_RE       = /^data:image\/(png|jpeg|webp);base64,/;
+const SAVE_WARN_BYTES   = 8 * 1024 * 1024;                      // 保存JSONの警告しきい値
+const FREE_PHOTO_INIT   = 260;                                  // 自由配置写真の初期サイズ（長辺px）
+const FREE_PHOTO_MIN    = 60;                                   // 自由配置写真の最小幅
+const FREE_PHOTO_MAX    = 520;                                  // 自由配置写真の最大幅
+
+/** 字体プリセット（施設名・自由テキスト共通。外部フォント不要・端末標準へフォールバック） */
+const FONT_PRESETS = {
+  gothic:     { label:'ゴシック',           css:'"Yu Gothic", YuGothic, Meiryo, メイリオ, "Hiragino Kaku Gothic ProN", sans-serif' },
+  'gothic-b': { label:'太字ゴシック',       css:'"Yu Gothic", YuGothic, Meiryo, メイリオ, "Hiragino Kaku Gothic ProN", sans-serif', weight:'bold' },
+  mincho:     { label:'明朝',               css:'"Yu Mincho", YuMincho, "Hiragino Mincho ProN", "MS PMincho", serif' },
+  'mincho-e': { label:'上品明朝',           css:'"Hiragino Mincho ProN", "Yu Mincho", YuMincho, "MS PMincho", serif', spacing:'2px' },
+  round:      { label:'丸ゴシック',         css:'"Hiragino Maru Gothic ProN", HGMaruGothicMPRO, "Yu Gothic UI", "Yu Gothic", sans-serif' },
+  'round-s':  { label:'やわらか丸ゴシック', css:'"Hiragino Maru Gothic ProN", HGMaruGothicMPRO, "Yu Gothic UI", sans-serif', spacing:'1px' },
+  hand:       { label:'手書き風',           css:'"UD デジタル 教科書体 NK-R", "Klee One", Klee, HG行書体, "Hiragino Mincho ProN", serif' },
+  cute:       { label:'かわいい系',         css:'"Hiragino Maru Gothic ProN", HGMaruGothicMPRO, "Yu Gothic UI", sans-serif', spacing:'2px', weight:'bold' },
+  pop:        { label:'ポップ太字',         css:'"HGP創英角ﾎﾟｯﾌﾟ体", HGSSoeiKakupoptai, "Hiragino Maru Gothic ProN", "Yu Gothic UI", sans-serif', weight:'bold' },
+};
+const FONT_DEFAULT = 'gothic-b';
+const HEAD_SIZES = { small: 26, normal: 34, large: 44 };
+const FOOT_SIZES = { small: 10, normal: 12, large: 15 };
+
+function fontKeyOf(k) { return FONT_PRESETS[k] ? k : FONT_DEFAULT; }
+function fontStyle(k) {
+  const f = FONT_PRESETS[fontKeyOf(k)];
+  return `font-family:${f.css};`
+       + (f.weight  ? `font-weight:${f.weight};`     : '')
+       + (f.spacing ? `letter-spacing:${f.spacing};` : '');
+}
+function fillFontSelect(id) {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = Object.keys(FONT_PRESETS)
+    .map(k => `<option value="${k}">${FONT_PRESETS[k].label}</option>`).join('');
+}
+
+/** 自由配置テキスト */
+const TEXT_INIT_SIZE = 24;
+const TEXT_MIN_SIZE  = 12;
+const TEXT_MAX_SIZE  = 72;
+const TEXT_MAX_LEN   = 200;
+
+/** 誕生日コーナー：1人・2人のときの写真サイズ（余白が大きくなるため大きく見せる） */
+const BD_SIZE_1 = 210;
+const BD_SIZE_2 = 165;
+const BD_SIZE_3 = 132;
+const BD_SIZE_4 = 108;
+
+/**
+ * 誕生日コーナーの水彩装飾（assets/illustrations/ のPNG）。
+ * 人数別に置く場所を決め打ちする。写真が主役なので小さめ・低い不透明度。
+ */
+const BD_DECO = {
+  1: [
+    { file:'deco-balloons', css:'left:14px;  top:50%; transform:translateY(-50%); width:82px; opacity:.50;' },
+    { file:'deco-bouquet',  css:'right:14px; top:52%; transform:translateY(-50%); width:74px; opacity:.50;' },
+    { file:'deco-stars',    css:'right:12px; top:6px;  width:44px; opacity:.40;' },
+  ],
+  2: [
+    { file:'deco-ribbon',   css:'left:14px;  top:56%; transform:translateY(-50%); width:62px; opacity:.45;' },
+    { file:'deco-stars',    css:'right:14px; top:52%; transform:translateY(-50%); width:58px; opacity:.45;' },
+  ],
+  3: [
+    { file:'deco-balloons', css:'right:10px; top:6px; width:38px; opacity:.32;' },
+  ],
+  many: [
+    { file:'deco-balloons', css:'right:10px; top:6px; width:46px; opacity:.40;' },
+  ],
+};
+
+/** 自動レイアウトの推奨枚数（誕生日カテゴリは数えない） */
+const AUTO_LAYOUT_MAX = 8;
+
+/** B5縦（JIS）の印刷設定 */
+const MM_PX            = 96 / 25.4;
+const B5_W_MM          = 182;
+const B5_H_MM          = 257;
+const B5_MARGIN_MM     = 6;    /* @page の margin と必ず同じ値にすること */
+const PRINT_MIN_RATIO  = 0.80;   // 相対縮小率の下限。これを下回ると警告
+
+/**
+ * 印刷の土台。幅を780pxに固定し、画面専用の表示を消す。
+ * 印刷時は常に有効。採寸中だけ media を 'all' にして同じ条件で測る。
+ */
+const PRINT_BASE_CSS = `
+  #nl-container { width: 780px !important; max-width: none !important; }
+  #newsletter .nl-warning    { display: none !important; }
+  #newsletter .nl-intro-hint { visibility: hidden !important; }
+
+`;
+
+/**
+ * 内容が多いときだけ使う圧縮（A+B）。
+ * 圧縮すると紙面の高さが変わり、絶対配置のスタンプ／テキストと本文の相対位置がずれるため、
+ * printFit() は「圧縮なしで収まるならそのまま印刷する」ようにしている。
+ */
+const PRINT_FIT_CSS = `
+  #newsletter .nl-body       { padding: 10px 16px; }
+  #newsletter .nl-section    { margin-bottom: 10px; }
+  #newsletter .nl-sec-header { margin-bottom: 5px; }
+  #newsletter .nl-intro      { padding: 8px 34px 8px 12px; margin-bottom: 10px; line-height: 1.6; }
+  #newsletter .photo-cell    { aspect-ratio: 3/2; }
+  #newsletter .pg-1 { grid-template-columns: repeat(2,1fr); }
+  #newsletter .pg-2 { grid-template-columns: repeat(3,1fr); }
+`;
+
+const MONTHLY_STAMPS = {
+   1: ['⛄','🎍','🎋','❄️','🌨️'],
+   2: ['💝','💕','⛄','❄️','🎀'],
+   3: ['🌸','🎎','🌺','🦋','🌷'],
+   4: ['🌸','🌼','🦋','🌱','🌈'],
+   5: ['🎏','🌈','🌻','🌿','☀️'],
+   6: ['💐','🌺','🌊','🎵','🌈'],
+   7: ['🎋','🌊','🎆','🎇','💫'],
+   8: ['🎆','🌊','☀️','🍦','🌻'],
+   9: ['🍁','🌕','🎑','🌾','🍄'],
+  10: ['🍁','🍂','🎃','🌕','🦔'],
+  11: ['🍂','🍁','🌾','🍄','🍇'],
+  12: ['🎄','❄️','⛄','🕯️','🎁'],
+};
+
+// ============================================================
+// COMMENT GENERATION TEMPLATE DATA
+// ============================================================
+const TPL = {
+  // Opening sentences by month (12 each)
+  intro: {
+    1: [
+        '新しい年を迎え、皆様が穏やかに過ごされています。','初春の清々しい空気の中、今年も元気にスタートしました。',
+        '寒さの厳しい季節ですが、皆様の笑顔で施設はとても温かいです。','お正月の余韻が残る中、和やかな日々が続いています。',
+        '年明けのおめでたい雰囲気の中、皆様と新年をお迎えしました。','松の内の華やいだ空気に包まれ、笑顔の多い一年の始まりとなりました。',
+        '書き初めやかるたを楽しみながら、日本らしいお正月を過ごしました。','白い息がこぼれる寒い朝も、館内は明るい声で満たされています。',
+        '新しい一年への願いを胸に、皆様とともに歩み始めました。','あたたかな室内で、ゆったりとした時間が流れています。',
+        '冬晴れの窓辺で、日向ぼっこを楽しむお姿が見られました。','一年の始まりを皆様と迎えられたことを、職員一同嬉しく思っています。',
+    ],
+    2: [
+        '寒さの中にも春の気配を感じる季節となりました。','節分の豆まきで、施設に元気な笑い声が響きました。',
+        '春の訪れを心待ちにしながら、毎日を穏やかに過ごしています。','暦の上での春もすぐそこです。皆様と一緒に季節を感じています。',
+        'バレンタインや節分など、楽しい行事が続く二月です。','梅の便りが聞こえはじめ、春への期待が高まる季節です。',
+        '「鬼は外、福は内」の元気な掛け声が館内に響きました。','寒さが和らぐ日には、窓越しの日差しにほっとひと息ついています。',
+        '厳しい寒さの中にも、日ごとに春らしさが増してきました。','手作りの飾りつけが、館内をやさしく彩っています。',
+        '温かい飲み物を片手に、ゆっくりと語らう時間を楽しんでいます。','立春を過ぎ、少しずつ日が長くなってきたのを感じます。',
+    ],
+    3: [
+        '春の訪れとともに、施設に明るい雰囲気が広がっています。','桜の便りが待ち遠しい季節、ひな祭りで賑やかに過ごしました。',
+        '暖かい日差しが増えてきた三月、皆様と春を感じています。','ひな人形に囲まれた施設で、春らしいひとときを過ごしています。',
+        'ぽかぽかとした陽気の中、皆様の表情も明るくなってきました。','桃の節句を迎え、華やかな雰囲気に包まれました。',
+        '旅立ちの季節を迎え、施設にも新しい風が吹いています。','日に日に暖かくなり、外の景色にも春の色が増えてきました。',
+        'つくしや菜の花の話題に、思い出話が弾んでいます。','春の日差しが差し込む窓辺で、穏やかな時間が流れています。',
+        '三寒四温を繰り返しながら、季節は確かに春へ向かっています。','ひと足早い春を感じながら、皆様と楽しく過ごしました。',
+    ],
+    4: [
+        '桜の咲き誇る季節となりました。','春爛漫の四月、皆様と一緒に季節を楽しんでいます。',
+        '暖かい日差しの中、新年度を穏やかにスタートしました。','春風が心地よい季節、利用者様の笑顔も一段と輝いています。',
+        '花びらが舞う美しい春、皆様と一緒に季節の喜びを分かち合っています。','新しい出会いの季節、施設にも明るい活気が満ちています。',
+        '花冷えの日もありましたが、皆様お元気にお過ごしです。','窓の外の桜を眺めながら、お花見気分を味わいました。',
+        'やわらかな春の日差しが、館内をやさしく包んでいます。','木々の芽吹きに、生命の力強さを感じる季節となりました。',
+        '春の草花を飾り、季節の彩りを楽しんでいます。','新年度を迎え、気持ちも新たに皆様と歩んでまいります。',
+    ],
+    5: [
+        '新緑が眩しい初夏となりました。','こいのぼりが泳ぐ清々しい季節を皆様とご一緒しています。',
+        '穏やかな五月晴れの中、過ごしやすい日々が続いています。','爽やかな風が吹く季節、利用者様も活き活きと過ごされています。',
+        '緑がまぶしいさわやかな五月、皆様と楽しい毎日を過ごしています。','風薫る五月、外の空気が心地よい季節となりました。',
+        '若葉の緑が日ごとに濃くなり、目にも鮮やかな毎日です。','端午の節句を祝い、皆様のご健康を願いました。',
+        '母の日には、感謝の気持ちを込めたひとときを過ごしました。','陽光きらめく季節、皆様の表情も晴れやかです。',
+        '心地よい風に吹かれながら、ゆったりと過ごしています。','過ごしやすい気候に恵まれ、活動の輪も広がっています。',
+    ],
+    6: [
+        '紫陽花の美しい季節となりました。','梅雨の季節も、施設の中は皆様の笑顔で明るく輝いています。',
+        '雨音の中に夏の予感を感じる季節、皆様と穏やかに過ごしています。','色とりどりの紫陽花のように、皆様の表情も豊かに咲いています。',
+        '梅雨の合間の晴れ間を大切に、皆様とのひとときを楽しんでいます。','しとしとと降る雨の音に、耳を傾ける時間も趣があります。',
+        '雨に濡れた庭の緑が、いっそう鮮やかに見える季節です。','衣替えを済ませ、夏に向けて心も軽やかになりました。',
+        '湿気の多い時期ですが、体調に気を配りながら元気に過ごしています。','てるてる坊主を飾り、晴れの日を心待ちにしています。',
+        '雨の日は室内での活動を工夫し、笑い声が絶えません。','季節の花々に囲まれ、心和むひとときを過ごしています。',
+    ],
+    7: [
+        '七夕の短冊に願いを込めながら、夏を楽しんでいます。','夏の訪れとともに、施設もにぎやかな雰囲気に包まれています。',
+        '暑い夏も、皆様の元気な笑顔に負けないよう取り組んでいます。','七夕の季節、皆様の願いを短冊に書いて飾りました。',
+        '星に願いを込めながら、夏のひとときを皆様と過ごしています。','本格的な夏の到来を感じる、日差しの強い季節となりました。',
+        '涼を求める工夫をしながら、快適にお過ごしいただいています。','風鈴の音色が、夏の暑さをやわらげてくれます。',
+        'かき氷やスイカなど、夏の味覚を楽しみました。','天の川に思いを馳せながら、皆様と願いごとを語り合いました。',
+        '暑さ対策と水分補給を心がけ、元気に夏を迎えています。','夏らしい飾りつけが、館内を明るく彩っています。',
+    ],
+    8: [
+        '暑い夏も皆様のパワーで元気に乗り越えています。','お盆の季節、様々な思い出を語らいながら過ごされています。',
+        '厳しい暑さの中でも、皆様がいきいきとお過ごしです。','夏の日差しに負けない笑顔で、毎日を過ごされています。',
+        '夏祭りの雰囲気の中、皆様と楽しいひとときを過ごしました。','蝉の声が響く中、夏本番を迎えています。',
+        '盆踊りの音頭に、自然と手拍子が生まれました。','涼しい室内で、思い出話に花が咲いています。',
+        '花火や夏祭りの話題で、賑やかなひとときとなりました。','厳しい残暑の中でも、皆様お変わりなくお過ごしです。',
+        '夕暮れの涼しい風に、季節の移ろいを感じます。','ご家族との再会を喜ばれるお姿が、心に残りました。',
+    ],
+    9: [
+        '少しずつ秋の気配を感じる季節となりました。','中秋の名月を眺めながら、穏やかなひとときを過ごしました。',
+        'お彼岸が近づき、秋らしい風が吹くようになってきました。','敬老の日を迎え、利用者様への感謝の気持ちを改めて実感しています。',
+        '秋空のもと、清々しい日々が続いています。','朝夕の風に、秋の気配が漂うようになりました。',
+        '長寿のお祝いに、館内は温かな拍手に包まれました。','虫の音に耳を澄ませながら、静かな夜を過ごしています。',
+        '夏の疲れをいたわりながら、ゆったりと過ごしています。','空が高くなり、雲の形にも秋を感じます。',
+        '実りの季節を前に、食欲も少しずつ戻ってきました。','これまで歩んでこられた人生に、敬意を込めてお祝いしました。',
+    ],
+    10:[
+        '紅葉が美しい季節となりました。','秋の爽やかな風の中、穏やかな日々が続いています。',
+        '色づく秋の景色を眺めながら、皆様と秋を楽しんでいます。','実りの秋を迎え、施設にも温かい雰囲気が広がっています。',
+        '赤や黄色に染まる季節、皆様と秋の彩りを楽しんでいます。','澄んだ空気が心地よく、深呼吸したくなる季節です。',
+        '金木犀の香りが、やさしく秋の訪れを告げています。','レクリエーションでは、笑顔と歓声が広がりました。',
+        '木の実や落ち葉を使った作品づくりを楽しみました。','食欲の秋、旬の味覚に舌鼓を打っています。',
+        '穏やかな日差しの下、散策を楽しむお姿が見られました。','秋晴れの日は、窓を開けて外の空気を感じています。',
+    ],
+    11:[
+        '深まる秋の中、穏やかな日々が続いています。','菊の花が美しい季節、皆様とゆったりとした時間を過ごしています。',
+        '晩秋の空の下、皆様と心温まるひとときを過ごしています。','冬の訪れを感じながら、皆様と一緒に温かく過ごしています。',
+        '秋も深まり、落ち葉の舞う季節となりました。','紅葉が見頃を迎え、色鮮やかな景色を楽しんでいます。',
+        'あたたかい上着が必要な季節となりました。','木枯らしの吹く日も、館内は笑い声であふれています。',
+        '柚子や大根など、冬支度の話題が増えてきました。','穏やかな小春日和に、心もほぐれるようです。',
+        '一年の実りに感謝しながら、日々を過ごしています。','早めの冬支度を整え、体調管理に気を配っています。',
+    ],
+    12:[
+        '冬の訪れとともに、クリスマスの季節を楽しんでいます。','年の瀬を迎え、皆様と一緒に一年を振り返っています。',
+        '寒い季節も、皆様の笑顔で施設はとても温かいです。','クリスマスや年末行事など、にぎやかな季節となりました。',
+        '師走の忙しい季節ですが、皆様と穏やかに過ごしています。','イルミネーションの話題に、心が弾んでいます。',
+        '年末の準備を進めながら、慌ただしくも楽しい日々です。','冬至のゆず湯で、心も体も温まりました。',
+        '手作りのリースやツリーが、館内を華やかに彩っています。','寒さが増す中、温かい食事が何よりのごちそうです。',
+        '来る年への希望を胸に、穏やかに過ごしています。','今年も皆様と過ごせたことに、心から感謝しております。',
+    ],
+  },
+
+  // Mid-sentence seasonal context phrases by month (8 each, no trailing punctuation)
+  context: {
+    1: [
+        'お正月の雰囲気の中で','新年の清々しい空気の中','温かな室内での活動を通じて',
+        '新年のご挨拶を交わしながら','初詣気分の飾りつけとともに','あたたかな汁物を囲みながら',
+        'ゆったりとした年始のひとときの中で','冬の寒さを分かち合いながら',
+    ],
+    2: [
+        '節分や季節の行事を通じて','春を待ちわびる気持ちで','あたたかい時間を共に過ごしながら',
+        '豆まきの掛け声とともに','春の足音を感じながら','窓辺の日差しを楽しみながら',
+        '手作りの飾りを囲みながら','温かい飲み物を味わいながら',
+    ],
+    3: [
+        'ひな祭りの飾りつけを楽しみながら','春の訪れを感じる活動の中で','桜の開花を心待ちにしながら',
+        'ひな飾りを眺めながら','やわらかな春風を感じながら','外の景色の変化を楽しみながら',
+        '春の草花を愛でながら','和やかな春の日差しの中で',
+    ],
+    4: [
+        '花見気分で春を満喫しながら','春らしい活動を通じて','新年度の清々しい気持ちの中で',
+        '桜の話題に花を咲かせながら','春の彩りを楽しみながら','あたたかな日差しに包まれて',
+        '窓を開けて春風を感じながら','芽吹きの季節を味わいながら',
+    ],
+    5: [
+        'こいのぼりを眺めながら','初夏の爽やかな空気の中で','過ごしやすい季節の活動を通じて',
+        '若葉の香りに包まれながら','心地よい風を感じながら','端午の節句を祝いながら',
+        '初夏の日差しを楽しみながら','過ごしやすい陽気の中で',
+    ],
+    6: [
+        '紫陽花を愛でながら','梅雨の合間の晴れ間を楽しみながら','室内でのにぎやかな活動を通じて',
+        '雨音に耳を傾けながら','季節の花を飾りながら','工夫を凝らした室内活動の中で',
+        '梅雨ならではの風情を味わいながら','雨上がりの空を見上げながら',
+    ],
+    7: [
+        '七夕飾りを作りながら','夏祭り気分の活動の中で','涼しい室内でのひとときを通じて',
+        '短冊に願いを込めながら','涼を感じる工夫とともに','夏の彩りを楽しみながら',
+        '風鈴の音を聞きながら','冷たいおやつを味わいながら',
+    ],
+    8: [
+        '夏の暑さに負けず元気に','お盆の温かな雰囲気の中で','夏ならではの楽しい活動を通じて',
+        '夏祭りの雰囲気を味わいながら','思い出話に花を咲かせながら','涼しい館内でゆったりと',
+        '夏の名残を感じながら','水分補給を心がけながら',
+    ],
+    9: [
+        'お月見気分の中で','秋風を感じながら','敬老会のお祝いムードの中で',
+        '秋の気配を感じながら','敬老の心を込めて','虫の音に耳を澄ませながら',
+        '実りの季節を楽しみに','やわらかな秋の日差しの中で',
+    ],
+    10:[
+        '紅葉を感じながら','秋晴れの気持ちよい空の下','実りの秋らしい活動を通じて',
+        '澄んだ空気を感じながら','秋の実りを味わいながら','紅葉の話題を楽しみながら',
+        '木の実を使った作品づくりとともに','行楽気分を味わいながら',
+    ],
+    11:[
+        '深まる秋を感じながら','温かいお茶を飲みながら','晩秋のひんやりした空気の中で',
+        '色づく景色を眺めながら','冬支度を進めながら','小春日和のあたたかさの中で',
+        '旬の味覚を楽しみながら','ひざ掛けで暖をとりながら',
+    ],
+    12:[
+        'クリスマスの飾りつけを楽しみながら','年末の温かな雰囲気の中で','今年一年を振り返りながら',
+        'クリスマスの音楽とともに','一年の思い出を語り合いながら','年越しの準備を進めながら',
+        'あたたかな鍋を囲みながら','冬の澄んだ空気の中で',
+    ],
+  },
+
+  // Event mention formats ({E} = event string)
+  eventFmt: [
+    '{E}を皆様と一緒に楽しみました。','{E}では、たくさんの笑顔が見られました。',
+    '{E}のひとときを皆様と共有しました。','{E}を通じて、にぎやかなひとときとなりました。',
+    '{E}など、充実した活動が続いています。','{E}を囲んで、和やかなひとときを過ごしました。',
+    '{E}が行われ、皆様が生き生きと参加されていました。','{E}では、皆様の生き生きとした表情が印象的でした。',
+    '{E}に取り組み、館内は活気にあふれていました。','{E}をきっかけに、会話も一段と弾みました。',
+    '{E}の時間は、笑い声が絶えないひとときとなりました。','{E}を開催し、皆様に楽しんでいただきました。',
+    '{E}では、思い思いに過ごされるお姿が見られました。','{E}には、たくさんのご参加をいただきました。',
+    '{E}を通して、季節を感じるひとときとなりました。','{E}の準備から、皆様と一緒に楽しみました。',
+    '{E}では、懐かしい思い出話も飛び出しました。','{E}では、自然と拍手が起こる場面もありました。',
+    '{E}を楽しみにされている声が多く聞かれました。','{E}では、それぞれの得意を活かして参加されていました。',
+    '{E}のひとときは、あっという間に過ぎていきました。','{E}で、館内はにぎやかな笑顔に包まれました。',
+    '{E}を行い、心に残る時間となりました。','{E}の様子は、ご家族にもぜひお伝えしたい一場面でした。',
+    '{E}など、季節ならではの活動を楽しみました。','{E}では、皆様の笑顔が何よりの励みとなりました。',
+  ],
+
+  /**
+   * Impression formats ({I} = impression string), grouped by the ending of the
+   * user input so the two never collide grammatically:
+   *   rentai … 連体接続できる入力（「〜た」「〜な」「〜い」）
+   *   noun   … 名詞で終わる入力（「笑顔」「元気な姿」）
+   *   te     … 「〜て」「〜で」で終わる入力
+   *   any    … 「」で引用するため入力の形を選ばない
+   */
+  impFmt: {
+    rentai: [
+      '{I}様子がとても印象的でした。','{I}という場面が多く見られました。',
+      '{I}お姿に、私たちも元気をいただいています。','{I}という声が、あちこちから聞かれました。',
+      '{I}ご様子に、こちらまで笑顔になりました。','{I}という場面が、特に心に残っています。',
+      '{I}お姿を拝見し、あらためて嬉しく感じました。','印象に残っているのは、{I}という一場面です。',
+      '{I}様子から、日々の充実が伝わってきます。','{I}という時間を、皆様と共有できました。',
+      '{I}ご様子が、私たちの何よりの喜びです。','{I}という姿に、職員も励まされました。',
+      '{I}——そんな場面が、今月も多く見られました。','{I}という点が、今月の印象に残っています。',
+      '{I}ご様子を、ご家族にもお伝えしたいと思います。','{I}という空気が、館内に広がっていました。',
+      '{I}様子は、写真からも伝わることと思います。','{I}という一面に、あらためて気づかされました。',
+      '{I}お姿が、私たちの支えとなっています。','{I}という日々が、穏やかに続いています。',
+      '{I}ご様子に、職員一同ほっとしております。','{I}という場面に、思わず笑みがこぼれました。',
+    ],
+    noun: [
+      '{I}が見られ、職員一同も嬉しく思います。','{I}に、私たちも笑顔をいただいています。',
+      '{I}が印象に残る一ヶ月となりました。','{I}が、館内のあちこちで見られました。',
+      '{I}を、たくさん見せていただきました。','{I}が何よりの喜びです。',
+      '{I}に、職員一同励まされました。',
+    ],
+    te: [
+      '皆様が{I}、心が温まる毎日です。','皆様が{I}、こちらまで笑顔になりました。',
+      '{I}、和やかな時間が流れていました。','{I}、職員一同も嬉しく思います。',
+      '{I}、心温まる場面が続きました。','皆様が{I}、うれしい限りです。',
+    ],
+    any: [
+      '今月の印象は、「{I}」の一言に尽きます。','職員の目に残ったのは、「{I}」という光景でした。',
+      '「{I}」——そんな一ヶ月でした。','今月を振り返ると、「{I}」という言葉が浮かびます。',
+      '「{I}」。そんな場面が、今月も多く見られました。',
+    ],
+  },
+
+  // Seasonal-word formats ({S} = seasonal word) — used as a sentence lead
+  seasonalFmt: [
+    '{S}を感じながら、','{S}が彩るこの季節、',
+    '{S}に心和ませながら、','{S}の話題で盛り上がりながら、',
+    '{S}を楽しむ季節となり、','{S}に包まれるこの時期、',
+    '{S}を眺めながら、','{S}が届けてくれる季節の便りとともに、',
+    '{S}に季節の移ろいを感じながら、','{S}を暮らしに取り入れながら、',
+    '{S}が身近に感じられるこの頃、','{S}のひとときを大切にしながら、',
+    '{S}に思いを寄せながら、','{S}とともに過ごすこの季節、',
+  ],
+
+  // Staff-comment formats ({F} = staff one-liner)
+  staffFmt: [
+    '職員からは「{F}」という声が聞かれました。','「{F}」——職員一同、そんな思いで日々向き合っています。',
+    'スタッフの一人は「{F}」と話していました。','職員の間でも「{F}」と話題になりました。',
+    '「{F}」という気持ちを胸に、日々のケアにあたっています。','現場からは「{F}」との声が届いています。',
+    '職員一同「{F}」と感じております。','スタッフからも「{F}」という声があがりました。',
+    '「{F}」——そんな会話が自然と生まれています。','職員にとっても「{F}」と感じる一ヶ月でした。',
+    '「{F}」との思いを、あらためて強くしました。','「{F}」と、スタッフ同士で話しております。',
+  ],
+
+  // Short connectives used as a sentence lead
+  bridge: [
+    'そんな中で、','あわせて、','また、',
+    'さらに、','その一方で、','とりわけ、',
+    'なかでも、','そのほかにも、','こうした日々の中で、',
+    '折にふれて、','日々の暮らしの中では、','そして、',
+  ],
+
+  // Generic middle sentences, used when 行事 and 印象 are both empty
+  fallbackMid: [
+    '皆様と笑顔いっぱいの一ヶ月を過ごしました。','穏やかで心豊かなひとときが続きました。',
+    '利用者様の笑顔があふれる一ヶ月となりました。','利用者様の笑顔がたくさん見られた一ヶ月でした。',
+    '温かいひとときをご一緒することができました。','心温まる場面が続いた一ヶ月となりました。',
+    '皆様との時間を大切に過ごしました。','心温まる毎日をご一緒できました。',
+    '充実したひとときが続いています。','和やかな会話が絶えない毎日でした。',
+    'それぞれのペースで、思い思いの時間を過ごされています。','穏やかな表情で過ごされるお姿が多く見られました。',
+  ],
+
+  // Type-specific opener fragments (6 each)
+  typeOpeners: {
+    gentle:   [
+        '穏やかな時間が流れる中、','やわらかな雰囲気の中、','皆様の笑顔に包まれながら、',
+        'ゆるやかな時間の流れの中で、','ほっとするひとときを重ねながら、','おだやかな笑顔に見守られながら、',
+    ],
+    seasonal: [
+        '季節の移ろいを感じながら、','自然の彩りを感じるこの季節、','季節の風を肌で感じながら、',
+        '移ろう景色を楽しみながら、','旬の彩りに包まれながら、','四季の恵みを感じるこの時期、',
+    ],
+    events:   [
+        'たくさんの行事で賑わいながら、','様々な活動に彩られた一ヶ月、','楽しい行事の数々とともに、',
+        'にぎやかな声が響く毎日の中で、','行事の準備から本番まで、','皆様と作り上げた時間の中で、',
+    ],
+    daily:    [
+        '日々の暮らしの中で、','穏やかな日常に温もりを感じながら、','変わらない毎日の中に、',
+        'いつもと変わらない時間の中に、','何気ない会話の積み重ねの中で、','日々のささやかな出来事の中に、',
+    ],
+    family:   [
+        'ご家族の皆様への感謝とともに、','温かいご支援に感謝しながら、','皆様とともに歩む中で、',
+        'ご家族の皆様に見守られながら、','日頃のご理解に支えられながら、','大切なご家族をお預かりする立場として、',
+    ],
+    frank:    [
+        '今月も元気いっぱいでした！','皆様のパワーに負けないよう！','にぎやかで楽しい一ヶ月でした。',
+        '今月もにぎやかにやっています！','笑い声の絶えない毎日でした！','元気いっぱいの一ヶ月をお届けします！',
+    ],
+    chief:    [
+        '施設一丸となって取り組む中で、','スタッフ一同力を合わせながら、','日々の業務の中で感じることは、',
+        '現場を預かる立場として、','日々の申し送りの中で感じるのは、','チームで支え合いながら、',
+    ],
+    short:    [
+        '今月も笑顔あふれる一ヶ月でした。','元気に過ごした一ヶ月です。','穏やかで充実した毎日でした。',
+        '笑顔いっぱいの一ヶ月でした。','今月も穏やかに過ごせました。','元気な声が響く毎日でした。',
+    ],
+    full:     [
+        '今月の施設の様子をお伝えします。','利用者様の日々の活動についてご報告いたします。','一ヶ月の出来事をご紹介いたします。',
+        '今月の主な出来事をご報告いたします。','日々の様子を詳しくお伝えいたします。','一ヶ月の歩みを振り返ります。',
+    ],
+  },
+
+  // Type-specific closing sentences (8 each)
+  closers: {
+    gentle:   [
+        'これからも皆様と一緒に、穏やかな毎日を歩んでまいります。','一人ひとりの笑顔を大切に、日々のケアに取り組んでいます。',
+        '皆様と過ごす毎日に、私たちも元気をいただいています。','温かい雰囲気の中で、これからも日々を大切に過ごしてまいります。',
+        'これからも、ゆったりとした時間を大切にしてまいります。','小さな笑顔の積み重ねを、これからも大切にしていきます。',
+        '皆様が安心して過ごせる場であり続けられるよう努めてまいります。','来月も、穏やかな日々をご一緒できれば幸いです。',
+    ],
+    seasonal: [
+        '次の季節も皆様と一緒に楽しみながら過ごしてまいります。','季節の変わり目を皆様と感じながら、これからも歩んでまいります。',
+        '移ろう季節とともに、素敵なひとときを重ねてまいります。','季節の彩りとともに、皆様との時間を大切にしてまいります。',
+        '季節の移ろいを、これからも皆様と味わってまいります。','来月はどんな季節の表情に出会えるか、楽しみにしています。',
+        '四季の彩りとともに、心に残るひとときを重ねてまいります。','次の季節の便りも、またお届けいたします。',
+    ],
+    events:   [
+        '今後も楽しいひとときをご一緒できるよう、工夫してまいります。','次の活動も皆様と一緒に楽しんでまいります。',
+        '充実した行事を通じて、皆様の笑顔を引き出してまいります。','来月もたくさんの楽しい活動をご一緒しましょう。',
+        '次回の行事も、心を込めて準備してまいります。','皆様に楽しんでいただける企画を考えてまいります。',
+        '行事を通じて、笑顔の輪をさらに広げてまいります。','来月の活動も、どうぞお楽しみになさってください。',
+    ],
+    daily:    [
+        '変わらない日常の中に、小さな喜びを大切にしています。','穏やかな毎日を、これからも皆様と歩んでまいります。',
+        '日々の暮らしの中で、皆様の笑顔を大切にしています。','普段の何気ないひとときを、これからも大切にしてまいります。',
+        '何気ない毎日にこそ、たくさんの笑顔が隠れています。','これからも、いつもの毎日をていねいに重ねてまいります。',
+        '日々の小さな変化にも気を配りながら、お支えしてまいります。','変わらぬ日常を、これからも大切に守ってまいります。',
+    ],
+    family:   [
+        'ご家族の皆様も、どうぞ安心していただければと思います。','いつも温かいご支援をいただき、誠にありがとうございます。',
+        'ご家族の皆様への感謝を胸に、これからも精一杯お支えいたします。','ご家族の皆様とともに、利用者様の笑顔を守ってまいります。',
+        'ご不明な点がございましたら、どうぞお気軽にお声かけください。','施設での様子が少しでも伝わりましたら幸いです。',
+        'これからも安心してお任せいただけるよう努めてまいります。','皆様のご健康を、職員一同心よりお祈りしております。',
+    ],
+    frank:    [
+        'これからも皆様と楽しい毎日をつくっていきます！','来月もみんなで元気に過ごしましょう！',
+        '皆様のパワーをもらいながら、スタッフも頑張ります！','引き続き、笑顔いっぱいの毎日をお届けします！',
+        '来月もにぎやかにいきましょう！','笑顔があふれる毎日を、これからもお届けします！',
+        '皆様と一緒に、元気に過ごしていきます！','次回もどうぞお楽しみに！',
+    ],
+    chief:    [
+        'スタッフ一同、皆様の毎日を全力でお支えいたします。','職員一同が心を一つにして、安心できる環境づくりに努めています。',
+        '引き続き、皆様に寄り添ったケアを提供してまいります。','今後とも、皆様の生活の質向上に向けて取り組んでまいります。',
+        '職員一同、初心を忘れず取り組んでまいります。','お一人おひとりに向き合う姿勢を大切にしてまいります。',
+        '安心と笑顔のある毎日を、チーム一丸でお支えします。','今後ともご指導のほど、よろしくお願いいたします。',
+    ],
+    short:    [
+        '来月もよろしくお願いいたします。','引き続きよろしくお願いいたします。',
+        'これからもよろしくお願いいたします。','来月もどうぞお楽しみに。',
+        '引き続き元気に過ごしてまいります。','また来月お伝えいたします。',
+        '今後ともよろしくお願いいたします。','皆様に感謝申し上げます。',
+    ],
+    full:     [
+        '今後も質の高いケアと楽しい活動を提供できるよう、職員一同努めてまいります。','引き続き皆様の生活の質向上に向け、スタッフ一同精進してまいります。',
+        '皆様に安心・安全で楽しい毎日を提供できるよう、これからも取り組んでまいります。','今後とも変わらぬお引き立てをよろしくお願い申し上げます。',
+        '今後とも変わらぬご支援を賜りますようお願い申し上げます。','引き続き、安心してお過ごしいただける環境づくりに努めてまいります。',
+        'お一人おひとりに寄り添ったケアを、これからも続けてまいります。','次号でも、施設での日々の様子をお伝えしてまいります。',
+    ],
+  },
+
+  /**
+   * Internal tone layer. Never shown as a UI control — one tone is assigned
+   * to each of パターンA/B/C automatically, and its label is displayed.
+   */
+  tone: {
+    hokkori: {
+      label: 'ほっこり',
+      open: [
+        'あたたかな空気に包まれながら、','ほっとするひとときの中で、',
+        'やわらかな笑顔に囲まれて、','心がじんわり温まる時間の中で、',
+        'のんびりとした時間が流れる中で、',
+      ],
+      spice: [
+        'ふとした瞬間の笑顔に、心が和みます。','何気ない会話が、いちばんの宝物です。',
+        'ゆっくりと流れる時間が、心地よく感じられます。','思わず頬がゆるむ場面がたくさんありました。',
+        'あたたかい気持ちになる出来事が続いています。',
+      ],
+      close: [
+        'これからも、ほっとできる場所であり続けたいと思います。','あたたかい時間を、これからも重ねてまいります。',
+        '心和むひとときを、皆様とご一緒してまいります。','ささやかな幸せを大切に、日々を過ごしてまいります。',
+        '来月も、あたたかな話題をお届けできればと思います。',
+      ],
+    },
+    genki: {
+      label: '元気で明るい',
+      open: [
+        '元気な声が響く毎日の中で、','明るい笑い声とともに、',
+        '活気あふれる雰囲気の中で、','パワフルな皆様に囲まれて、',
+        'にぎやかな毎日の中で、',
+      ],
+      spice: [
+        '館内は今月も笑い声でいっぱいでした。','皆様の元気に、職員も思わず笑顔になります。',
+        '明るい声が、施設全体を包んでいます。','元気いっぱいのお姿に、こちらが励まされます。',
+        '活気ある雰囲気が、日ごとに広がっています。',
+      ],
+      close: [
+        '来月も元気いっぱいで過ごしてまいります。','これからも明るい笑顔をお届けします。',
+        '元気な毎日を、皆様と一緒につくってまいります。','笑顔と活気にあふれる施設を目指してまいります。',
+        '次回も明るい話題をお伝えできればと思います。',
+      ],
+    },
+    elegant: {
+      label: '上品で落ち着いた',
+      open: [
+        '静かな時間が流れる中で、','落ち着いた雰囲気に包まれながら、',
+        'ゆるやかな時の流れとともに、','和やかな空気の中で、',
+        '穏やかな時間を重ねながら、',
+      ],
+      spice: [
+        '穏やかな時間が、ゆったりと流れています。','静けさの中に、確かな充実が感じられます。',
+        '落ち着いたひとときが、心を整えてくれます。','ゆったりとした時間の尊さを、あらためて感じます。',
+        '日々の営みに、静かな喜びがあります。',
+      ],
+      close: [
+        'これからも、心穏やかな毎日をお支えしてまいります。','落ち着いた環境づくりに、引き続き努めてまいります。',
+        'ゆるやかな時間を、これからも大切に守ってまいります。','皆様が心安らかに過ごせるよう努めてまいります。',
+        '次号でも、日々の様子を丁寧にお伝えいたします。',
+      ],
+    },
+    kando: {
+      label: '少し感動的',
+      open: [
+        '心に残る場面に出会いながら、','忘れられないひとときとともに、',
+        '胸が温かくなる出来事の中で、','しみじみと感じ入る場面の中で、',
+        '心動かされる時間の中で、',
+      ],
+      spice: [
+        'ふとした表情に、これまで歩んでこられた歳月を感じます。','何気ない一言が、深く心に残りました。',
+        'その笑顔に、私たちの方が救われる思いでした。','当たり前の日常が、どれほど尊いかを教えられます。',
+        '思わず胸が熱くなる場面がありました。',
+      ],
+      close: [
+        'こうした出会いを胸に、これからも歩んでまいります。','心に残る時間を、これからも積み重ねてまいります。',
+        '皆様との日々を、かけがえのないものとして大切にしてまいります。','その笑顔を守るために、精一杯努めてまいります。',
+        'これからも、心通わす毎日をご一緒させてください。',
+      ],
+    },
+    staff: {
+      label: '職員目線',
+      open: [
+        '職員一同で見守る中、','日々のケアに向き合いながら、',
+        'スタッフで声をかけ合いながら、','現場での気づきを共有しながら、',
+        'チームで支え合いながら、',
+      ],
+      spice: [
+        '職員にとっても、学びの多い一ヶ月となりました。','スタッフ同士で喜びを分かち合う場面もありました。',
+        '日々の関わりの中に、たくさんの気づきがあります。','私たちの方が元気をいただくことばかりです。',
+        '職員一同、あらためて身の引き締まる思いです。',
+      ],
+      close: [
+        '職員一同、これからも力を合わせて取り組んでまいります。','日々の気づきを、よりよいケアにつなげてまいります。',
+        'スタッフ全員で、皆様の毎日をお支えしてまいります。','これからも研鑽を重ね、丁寧に向き合ってまいります。',
+        '引き続き、チーム一丸となって努めてまいります。',
+      ],
+    },
+    user: {
+      label: '利用者様中心',
+      open: [
+        '利用者様お一人おひとりの歩みとともに、','皆様のペースを大切にしながら、',
+        'それぞれの思いに寄り添いながら、','利用者様の笑顔を中心に、',
+        'お一人おひとりの個性が輝く中で、',
+      ],
+      spice: [
+        'お一人おひとりに、その方らしい時間が流れています。','それぞれの得意や好みが、自然と発揮される場面が増えました。',
+        '皆様の「やってみたい」が、活動の出発点になっています。','その方らしい表情に出会えることが、私たちの喜びです。',
+        'お一人おひとりのペースが、何より大切にされています。',
+      ],
+      close: [
+        'これからも、お一人おひとりに寄り添ってまいります。','その方らしい毎日を、これからも支えてまいります。',
+        '皆様の思いを大切に、日々のケアに取り組んでまいります。','お一人おひとりの笑顔を守るため、努めてまいります。',
+        '利用者様が主役の毎日を、これからもつくってまいります。',
+      ],
+    },
+  },
+};
+
+/** Which tones may be assigned to each of the 9 コメントタイプ */
+const TONE_BY_TYPE = {
+  gentle:   ['hokkori','elegant','user','kando'],
+  seasonal: ['elegant','hokkori','kando','user'],
+  events:   ['genki','hokkori','user','staff'],
+  daily:    ['hokkori','user','staff','elegant'],
+  family:   ['elegant','kando','staff','user'],
+  frank:    ['genki','hokkori','user','staff'],
+  chief:    ['staff','elegant','kando','user'],
+  short:    ['hokkori','genki','elegant','user'],
+  full:     ['staff','elegant','kando','user'],
+};
+
+// ============================================================
+// STATE
+// ============================================================
+const state = {
+  photos: [],          // {id, name, dataUrl, category, width, height, sizeOverride}
+  customCategories: [],// ユーザー追加カテゴリ {id:'custom_...', name}
+  selectedPhotoId: null,// 直接編集中の自動レイアウト写真（保存しない）
+  cropMode: false,      // トリミング操作中か（保存しない）
+  logoMode: 'text',     // 季節ロゴ: 'text' | 'auto' | '01'..'12'
+  headFont: 'gothic-b', headSize: 'normal',   // 紙面上部の字体・サイズ
+  footFont: 'gothic',   footSize: 'normal',   // 紙面下部の字体・サイズ
+  stickers: [],        // 絵文字{id, emoji, ...} / 画像{id, type:'image', src|dataUrl, ...}
+  selectedStickerId: null,
+  theme: 'spring',
+  comment: '',
+  layoutMode: 'auto',
+};
+
+let activeDecoGroup = 0;
+
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+  const now = new Date();
+  document.getElementById('pub-year').value  = now.getFullYear();
+  document.getElementById('pub-month').value = now.getMonth() + 1;
+
+  updateDate();
+  setTheme(seasonOf(now.getMonth() + 1), false);
+  setupUpload();
+  setupStickerDrop();
+  setupPrintFitStyle();
+  setupPrintHooks();
+  renderCatPalette();
+  renderCatManager();
+  ['hdr-font', 'ftr-font', 'st-font'].forEach(fillFontSelect);
+  fillLogoSelect();
+  applyLogo();
+  applyPaperFonts();
+  syncPaperControls();
+
+  document.getElementById('pub-year').addEventListener('input', updateDate);
+  document.getElementById('pub-month').addEventListener('input', () => {
+    updateDate();
+    const m = +document.getElementById('pub-month').value;
+    if (m) {
+      setTheme(seasonOf(m), false);
+      if (document.getElementById('deco-tray').style.display !== 'none') renderDecoPanel();
+    }
+  });
+  document.getElementById('facility-name').addEventListener('input', updateFacility);
+  document.getElementById('comment-ta').addEventListener('input', function() {
+    document.getElementById('char-count').textContent = this.value.length;
+  });
+
+  // 自動レイアウト写真の選択を、関係ない場所のクリックで解除
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.photo-cell') && !e.target.closest('#cell-toolbar')) deselectGridPhoto();
+  });
+
+  // Deselect sticker when clicking outside
+  document.addEventListener('click', function(e) {
+    if (state.selectedStickerId &&
+        !e.target.closest('.sticker') &&
+        !e.target.closest('#sticker-toolbar') &&
+        !e.target.closest('#deco-tray')) {
+      deselectSticker();
+    }
+  });
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function seasonOf(m) {
+  if ([3,4,5].includes(m))   return 'spring';
+  if ([6,7,8].includes(m))   return 'summer';
+  if ([9,10,11].includes(m)) return 'autumn';
+  return 'winter';
+}
+
+function updateDate() {
+  const y = +document.getElementById('pub-year').value  || new Date().getFullYear();
+  const m = +document.getElementById('pub-month').value || new Date().getMonth() + 1;
+  const reiwa = y - 2018;
+  const era   = reiwa > 0 ? `令和${reiwa}年` : `${y}年`;
+  const str   = `${era}${m}月号`;
+  document.getElementById('nl-date').textContent     = str;
+  document.getElementById('footer-date').textContent = str;
+  applyLogo();            // 「月に合わせて自動」のときは発行月に追従させる
+}
+
+function updateFacility() {
+  const v = document.getElementById('facility-name').value;
+  document.getElementById('footer-facility').textContent = v;
+  const f = document.getElementById('ftr-text');
+  if (f && f.value !== v) f.value = v;
+}
+
+/**
+ * 季節ロゴヘッダーの月別デザイン（背景・左右装飾）。ここ1か所で管理する。
+ * l / r は assets/illustrations/ のファイル名（null なら置かない）。h は表示高さ(px)、o は不透明度。
+ */
+const MONTH_HEADER_STYLES = {
+  '01': { bg:'linear-gradient(135deg,#fffaf0 0%,#fdf3dd 55%,#f7e6c8 100%)', l:{f:'deco-sakura',   h:70,o:.48}, r:{f:'deco-bouquet',  h:62,o:.40} },
+  '02': { bg:'linear-gradient(135deg,#fff6f6 0%,#ffecef 55%,#ffe0e6 100%)', l:{f:'deco-sakura',   h:70,o:.50}, r:{f:'deco-bouquet',  h:60,o:.40} },
+  '03': { bg:'linear-gradient(135deg,#fff7fa 0%,#ffeef4 55%,#ffe2ec 100%)', l:{f:'deco-sakura',   h:74,o:.50}, r:{f:'deco-sakura',   h:58,o:.34} },
+  '04': { bg:'linear-gradient(135deg,#fff8fb 0%,#fdeef3 50%,#eef6e6 100%)', l:{f:'deco-sakura',   h:76,o:.50}, r:{f:'deco-bouquet',  h:64,o:.42} },
+  '05': { bg:'linear-gradient(135deg,#f5fbff 0%,#eef7f4 55%,#e9f4e2 100%)', l:{f:'deco-bouquet',  h:70,o:.46}, r:{f:'deco-bouquet',  h:56,o:.32} },
+  '06': { bg:'linear-gradient(135deg,#f7f6ff 0%,#eeeffb 55%,#e6ecf7 100%)', l:{f:'deco-bouquet',  h:72,o:.46}, r:{f:'deco-bouquet',  h:58,o:.32} },
+  '07': { bg:'linear-gradient(135deg,#f4f9ff 0%,#e9f1fb 55%,#dfe8f7 100%)', l:{f:'deco-stars',    h:72,o:.48}, r:{f:'deco-stars',    h:58,o:.36} },
+  '08': { bg:'linear-gradient(135deg,#f3fbff 0%,#e8f5fd 55%,#ddeefb 100%)', l:{f:'deco-sunflower',h:72,o:.50}, r:{f:'deco-stars',    h:60,o:.38} },
+  '09': { bg:'linear-gradient(135deg,#fffdf2 0%,#f7f3e2 55%,#e9e6d6 100%)', l:{f:'deco-stars',    h:60,o:.38}, r:{f:'deco-autumn',   h:66,o:.42} },
+  '10': { bg:'linear-gradient(135deg,#fff8f1 0%,#ffeedd 55%,#ffe2c9 100%)', l:{f:'deco-autumn',   h:72,o:.50}, r:{f:'deco-autumn',   h:58,o:.34} },
+  '11': { bg:'linear-gradient(135deg,#fffcf0 0%,#fdf2d9 55%,#f6e6c0 100%)', l:{f:'deco-autumn',   h:74,o:.48}, r:{f:'deco-autumn',   h:60,o:.36} },
+  '12': { bg:'linear-gradient(135deg,#f7fcff 0%,#eef6fb 55%,#e6f1f8 100%)', l:{f:'deco-xmas',     h:72,o:.50}, r:{f:'deco-stars',    h:60,o:.38} },
+};
+
+/** 季節ロゴ。'text' は従来の文字タイトル、'auto' は発行月連動、'01'〜'12' は手動 */
+const LOGO_DIR = 'assets/logos';
+function normalizeLogoMode(v) {
+  return (v === 'auto' || /^(0[1-9]|1[0-2])$/.test(String(v))) ? String(v) : 'text';
+}
+function logoMonthKey() {
+  if (state.logoMode === 'auto') {
+    const m = +document.getElementById('pub-month').value || (new Date().getMonth() + 1);
+    return String(Math.min(12, Math.max(1, m))).padStart(2, '0');
+  }
+  return /^(0[1-9]|1[0-2])$/.test(state.logoMode) ? state.logoMode : null;
+}
+function applyLogo() {
+  const hd  = document.querySelector('.nl-header');
+  const img = document.getElementById('nl-logo');
+  if (!hd || !img) return;
+  const dl = document.getElementById('hd-deco-l');
+  const dr = document.getElementById('hd-deco-r');
+  const key = (state.logoMode === 'text') ? null : logoMonthKey();
+  if (!key) {
+    hd.classList.remove('has-logo');
+    hd.style.removeProperty('background');
+    img.style.display = 'none'; img.removeAttribute('src');
+    [dl, dr].forEach(e => { if (e) { e.style.display = 'none'; e.removeAttribute('src'); } });
+    return;
+  }
+  img.src = `${LOGO_DIR}/month-${key}.png`;
+  img.style.display = 'block';
+  hd.classList.add('has-logo');
+
+  const st = MONTH_HEADER_STYLES[key];
+  hd.style.background = st ? st.bg : '#fff';
+  const put = (el, d) => {
+    if (!el) return;
+    if (!d) { el.style.display = 'none'; el.removeAttribute('src'); return; }
+    el.src = `${ILLUST_DIR}/${d.f}.png`;
+    el.style.height  = d.h + 'px';
+    el.style.opacity = d.o;
+    el.style.display = 'block';
+  };
+  put(dl, st && st.l);
+  put(dr, st && st.r);
+}
+function setLogoMode(v) {
+  state.logoMode = normalizeLogoMode(v);
+  const el = document.getElementById('logo-mode');
+  if (el && el.value !== state.logoMode) el.value = state.logoMode;
+  applyLogo();
+}
+function fillLogoSelect() {
+  const el = document.getElementById('logo-mode');
+  if (!el) return;
+  let h = '<option value="text">文字タイトル</option><option value="auto">季節ロゴ（月に合わせて自動）</option>';
+  for (let m = 1; m <= 12; m++) h += `<option value="${String(m).padStart(2,'0')}">季節ロゴ ${m}月</option>`;
+  el.innerHTML = h;
+}
+
+/** 上部・下部の字体とサイズを紙面へ当てる */
+function applyPaperFonts() {
+  const t = document.getElementById('nl-main-title');
+  if (t) t.style.cssText = fontStyle(state.headFont) + `font-size:${HEAD_SIZES[state.headSize] || 34}px;`;
+  const f = document.getElementById('footer-facility');
+  if (f) f.style.cssText = fontStyle(state.footFont) + `font-size:${FOOT_SIZES[state.footSize] || 12}px;`;
+}
+function setHeadText(v) { document.getElementById('nl-main-title').textContent = v; }
+function setFootText(v) {
+  document.getElementById('facility-name').value = v;
+  document.getElementById('footer-facility').textContent = v;
+}
+function setPaperFont(which, v) {
+  if (which === 'head') state.headFont = fontKeyOf(v); else state.footFont = fontKeyOf(v);
+  applyPaperFonts();
+}
+function setPaperSize(which, v) {
+  const ok = (v === 'small' || v === 'large') ? v : 'normal';
+  if (which === 'head') state.headSize = ok; else state.footSize = ok;
+  applyPaperFonts();
+}
+/** パネルの入力欄を現在の状態に合わせる */
+function syncPaperControls() {
+  const set = (id, v) => { const e = document.getElementById(id); if (e) e.value = v; };
+  set('hdr-text', document.getElementById('nl-main-title').textContent);
+  set('ftr-text', document.getElementById('facility-name').value);
+  set('logo-mode', state.logoMode);
+  set('hdr-font', state.headFont); set('hdr-size', state.headSize);
+  set('ftr-font', state.footFont); set('ftr-size', state.footSize);
+}
+
+function setTheme(key, autoComment = true) {
+  state.theme = key;
+  const cfg = THEME_CONFIG[key];
+  const nl  = document.getElementById('newsletter');
+  nl.style.setProperty('--primary',   cfg.primary);
+  nl.style.setProperty('--secondary', cfg.secondary);
+  document.getElementById('nl-deco-l').textContent = cfg.deco;
+  document.getElementById('nl-deco-r').textContent = cfg.deco;
+  if (autoComment) generateComment();
+}
+
+// ============================================================
+// UPLOAD
+// ============================================================
+function setupUpload() {
+  const zone  = document.getElementById('upload-zone');
+  const input = document.getElementById('file-input');
+  input.addEventListener('change', e => processFiles(e.target.files));
+  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', ()  => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag-over');
+    processFiles(e.dataTransfer.files);
+  });
+}
+
+function processFiles(files) {
+  const imgs = Array.from(files).filter(f => f.type.startsWith('image/'));
+  if (!imgs.length) return;
+  let done = 0;
+  imgs.forEach(f => {
+    const r = new FileReader();
+    r.onload = ev => {
+      const im = new Image();
+      im.onload = () => {
+        state.photos.push({
+          id: Date.now() + Math.random(),
+          name: f.name, dataUrl: ev.target.result,
+          category: autoClass(f.name),
+          width: im.width, height: im.height,
+          sizeOverride: '',
+        });
+        if (++done === imgs.length) renderPhotoList();
+      };
+      im.src = ev.target.result;
+    };
+    r.readAsDataURL(f);
+  });
+}
+
+function autoClass(name) {
+  const n = name.toLowerCase();
+  if (/誕生|birth/.test(n))        return 'birthday';
+  if (/行事|event|イベント/.test(n)) return 'event';
+  if (/茶話|ちゃわ|お茶|茶/.test(n)) return 'tea';
+  if (/食事|meal|昼食|朝食|夕食|ランチ/.test(n)) return 'meal';
+  if (/季節|花見|紅葉|雪|ひな|端午|七夕|クリスマス|spring|summer|autumn|winter/.test(n)) return 'season';
+  return 'daily';
+}
+
+// ============================================================
+// カテゴリ（固定 + ユーザー追加）
+// ============================================================
+
+/** 追加カテゴリの見出し色。IDから決定的に選ぶのでJSONに保存しない。 */
+const CUSTOM_CAT_COLORS = ['#a3b9d9', '#a8c98f', '#d9a8a8', '#8fc5c5', '#c2a8d9', '#d9c08f'];
+const CUSTOM_CAT_NAME_MAX = 20;   // カテゴリ名の最大文字数
+const CUSTOM_CAT_MAX      = 100;  // 読込時の安全上限（作った分類を読込で失わないよう余裕を持たせる）
+
+/** 選べる12色（HTMLのカラーピッカーで自由な色も指定できる） */
+const CAT_PALETTE = ['#e07a7a','#e2955c','#e0bb57','#a8bf5a','#6fb37a','#5bb3a6',
+                     '#5b9bd5','#7b8fd4','#9d86cc','#c77fb4','#b58c6a','#8d97a5'];
+
+/** 保存された色があればそれを、無ければ従来どおりIDから決定的に選ぶ（旧JSON互換） */
+function customCatColor(c) {
+  if (typeof c === 'string') c = { id: c };
+  if (c && typeof c.color === 'string' && /^#[0-9a-f]{6}$/i.test(c.color)) return c.color;
+  const id = (c && c.id) || '';
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return CUSTOM_CAT_COLORS[h % CUSTOM_CAT_COLORS.length];
+}
+
+/** 背景色に対して読みやすい文字色を返す */
+function catTextColor(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const L = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+  return L > 0.62 ? '#3b3b3b' : '#ffffff';
+}
+
+/** パレットを描く（選択中の色は枠付き） */
+function renderCatPalette() {
+  const box = document.getElementById('cat-pal');
+  if (!box) return;
+  const cur = (document.getElementById('cat-color') || {}).value || CAT_PALETTE[0];
+  box.innerHTML = CAT_PALETTE.map(col =>
+      `<button class="cat-sw${col.toLowerCase() === String(cur).toLowerCase() ? ' on' : ''}"`
+    + ` style="background:${col}" title="${col}" onclick="pickCatColor('${col}')"></button>`).join('')
+    + `<input class="cat-pick" id="cat-color" type="color" value="${cur}"`
+    + ` title="自由な色" oninput="renderCatPalette()">`;
+}
+function pickCatColor(col) {
+  const el = document.getElementById('cat-color');
+  if (el) el.value = col;
+  renderCatPalette();
+}
+/** 追加済みカテゴリの色を変える */
+function setCatColor(id, col) {
+  const c = state.customCategories.find(x => x.id === id);
+  if (!c || !/^#[0-9a-f]{6}$/i.test(col)) return;
+  c.color = col.toLowerCase();
+  renderCatManager();
+  renderPhotoList();
+  if (state.photos.length) generateLayout();
+}
+
+/** innerHTML に流し込む文字列のエスケープ（カテゴリ名・ファイル名はユーザー入力） */
+function escHtml(v) {
+  return String(v).replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+/** 追加カテゴリを CATS / SEC_ORDER と同じ形に揃える（アイコンは付けない） */
+function customCatEntry(c) {
+  const col = customCatColor(c);
+  return { id: c.id, label: c.name, icon: '', color: col, textColor: catTextColor(col) };
+}
+
+/** 写真の分類プルダウン用（固定 + 追加） */
+function allCats() {
+  return CATS.concat(state.customCategories.map(customCatEntry));
+}
+
+/** 紙面のセクション順（追加分は「その他」の直前） */
+function allSections() {
+  const custom = state.customCategories.map(customCatEntry);
+  const i = SEC_ORDER.findIndex(s => s.id === 'other');
+  return SEC_ORDER.slice(0, i).concat(custom, SEC_ORDER.slice(i));
+}
+
+/** 追加カテゴリのチップ一覧を描き直す */
+function renderCatManager() {
+  const box = document.getElementById('cat-chips');
+  if (!box) return;
+  box.innerHTML = state.customCategories.map(c => {
+    const col = customCatColor(c);
+    return `<span class="cat-chip" style="background:${col};color:${catTextColor(col)}">`
+      + `<input type="color" value="${col}" title="色を変える"`
+      + ` oninput="setCatColor('${c.id}', this.value)">`
+      + `${escHtml(c.name)}`
+      + `<button onclick="deleteCustomCategory('${c.id}')" title="この分類を削除">✕</button></span>`;
+  }).join('');
+}
+
+/** 入力欄からカテゴリを追加する（件数の上限は設けない） */
+function addCustomCategory() {
+  const inp  = document.getElementById('cat-name-input');
+  const name = inp.value.trim().slice(0, CUSTOM_CAT_NAME_MAX);
+  if (!name) { inp.focus(); return; }
+  if (allCats().some(c => c.label === name)) {
+    alert(`「${name}」という分類はすでにあります。`);
+    return;
+  }
+  const picker = document.getElementById('cat-color');
+  state.customCategories.push({
+    id:    'custom_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+    name:  name,
+    color: (picker && picker.value) ? picker.value.toLowerCase() : CAT_PALETTE[0],
+  });
+  inp.value = '';
+  renderCatManager();
+  renderPhotoList();          // 追加直後はどの写真も未使用なので紙面は変わらない
+}
+
+/** 追加カテゴリを削除する。使用中の写真は「日常」へ移す。 */
+function deleteCustomCategory(id) {
+  const c = state.customCategories.find(c => c.id === id);
+  if (!c) return;
+  const used = state.photos.filter(p => p.category === id).length;
+  const msg = used > 0
+    ? `「${c.name}」を使っている写真が${used}枚あります。\n` +
+      `写真を「日常」に移して、このカテゴリを削除しますか？`
+    : `カテゴリ「${c.name}」を削除しますか？`;
+  if (!confirm(msg)) return;                    // キャンセルなら何もしない
+
+  if (used > 0) {
+    state.photos.forEach(p => { if (p.category === id) p.category = 'daily'; });
+  }
+  state.customCategories = state.customCategories.filter(x => x.id !== id);
+  renderCatManager();
+  renderPhotoList();
+  if (state.photos.length) generateLayout();
+}
+
+/**
+ * 保存ファイルから読んだカテゴリ定義を安全な形に整える。
+ * id は custom_ 始まりの文字列のみ、name は trim して20文字まで、
+ * 重複IDは1件、件数は CUSTOM_CAT_MAX（100件）まで。
+ */
+function normalizeCustomCats(list) {
+  const out = [], seen = {};
+  (list || []).forEach(c => {
+    if (!c || typeof c.id !== 'string' || c.id.indexOf('custom_') !== 0) return;
+    if (typeof c.name !== 'string') return;
+    const name = c.name.trim().slice(0, CUSTOM_CAT_NAME_MAX);
+    if (!name || seen[c.id] || out.length >= CUSTOM_CAT_MAX) return;
+    seen[c.id] = 1;
+    const o = { id: c.id, name: name };
+    if (typeof c.color === 'string' && /^#[0-9a-f]{6}$/i.test(c.color)) o.color = c.color.toLowerCase();
+    out.push(o);
+  });
+  return out;
+}
+
+// ============================================================
+// PHOTO LIST
+// ============================================================
+function renderPhotoList() {
+  const el = document.getElementById('photo-list');
+  document.getElementById('photo-count').textContent = state.photos.length;
+  if (!state.photos.length) {
+    el.innerHTML = `<div class="empty-state"><div class="big">🖼️</div>
+      <p style="margin-top:8px;font-size:12px">写真をアップロードしてください</p></div>`;
+    return;
+  }
+  el.innerHTML = state.photos.map((p, i) => `
+    <div class="photo-item${p.sizeOverride==='wide'?' is-wide':''}" draggable="true"
+         ondragstart="dStart(event,${i})" ondragover="dOver(event,${i})" ondrop="dDrop(event,${i})">
+      <span class="drag-handle">⠿</span>
+      <img class="photo-thumb" src="${p.dataUrl}" alt="">
+      <div class="photo-info">
+        <div class="photo-name">${escHtml(p.name)}</div>
+        <div class="selects-row">
+          <select class="cat-select" onchange="setCat(${i},this.value)">
+            ${allCats().map(c=>`<option value="${c.id}"${p.category===c.id?' selected':''}${c.textColor?` style="background:${c.color};color:${c.textColor}"`:''}>${c.icon}${escHtml(c.label)}</option>`).join('')}
+          </select>
+          <select class="size-sel" onchange="setSizeOverride(${i},this.value)">
+            <option value=""    ${p.sizeOverride===''    ?'selected':''}>自動</option>
+            <option value="wide"${p.sizeOverride==='wide'?'selected':''}>↔ 大</option>
+          </select>
+        </div>
+      </div>
+      <button class="photo-del" onclick="delPhoto(${i})">✕</button>
+    </div>
+  `).join('');
+}
+
+function setCat(i, v)          { state.photos[i].category = v; }
+function setSizeOverride(i, v) { state.photos[i].sizeOverride = v; renderPhotoList(); }
+function delPhoto(i)           { state.photos.splice(i, 1); renderPhotoList(); generateLayout(); }
+
+let dragI = null;
+function dStart(e, i) { dragI = i; }
+function dOver(e, i)  { e.preventDefault(); }
+function dDrop(e, i)  {
+  e.preventDefault();
+  if (dragI === null || dragI === i) return;
+  const [item] = state.photos.splice(dragI, 1);
+  state.photos.splice(i, 0, item);
+  dragI = null;
+  renderPhotoList();
+}
+
+// ============================================================
+// LAYOUT ENGINE
+// ============================================================
+function computeDensity(total, mode) {
+  if (mode === 'large') return 'large';
+  if (mode === 'many')  return total <= 10 ? 'small' : 'mini';
+  if (total <= 4)  return 'large';
+  if (total <= 8)  return 'medium';
+  if (total <= 15) return 'small';
+  return 'mini';
+}
+
+function isFeatured(secId, mode) {
+  return (mode === 'birthday' && secId === 'birthday') ||
+         (mode === 'event'    && secId === 'event');
+}
+
+function colsForSection(n, maxCols, featured) {
+  const limit = featured ? Math.max(1, maxCols - 1) : maxCols;
+  if (n <= 1) return 1;
+  if (n === 2) return Math.min(2, limit);
+  if (n === 3) return Math.min(3, limit);
+  if (n === 4 && limit >= 2) return 2;
+  if (n === 6 && limit === 2) return 2;
+  return Math.min(n, limit);
+}
+
+function buildGrid(photos, density, featured) {
+  if (!photos.length) return '';
+  const cfg  = DENSITY_CFG[density];
+  const cols = colsForSection(photos.length, cfg.maxCols, featured);
+  const cells = photos.map(p => {
+    const span = (p.sizeOverride === 'wide' && cols > 1) ? ' pc-span2' : '';
+    return `<div class="photo-cell${span}${frameClass(p)}" data-pid="${p.id}" style="${adjStyle(p)}"` +
+           ` onmousedown="gridPointerDown(event,'${p.id}')">${imgTag(p)}</div>`;
+  }).join('');
+  return `<div class="pg pg-${cols}" style="gap:${cfg.gap}px">${cells}</div>`;
+}
+
+function imgTag(p) {
+  return `<div class="pc-frame">`
+       + `<div class="pc-clip" style="${cropStyle(p)}">`
+       + `<img src="${p.dataUrl}" alt="写真" loading="lazy" draggable="false">`
+       + `</div></div>`;
+}
+
+// ------------------------------------------------------------
+// 自動レイアウト写真 → 自由配置写真への切り替え
+// ------------------------------------------------------------
+
+// --- 自動レイアウト写真の手動調整 p.adj -------------------------------
+// グリッドの枠（セル）はそのまま残し、transform だけで見た目を動かす。
+// transform はレイアウトに影響しないので、1枚動かしても他の写真は再配置されない。
+
+/** 調整値を transform と z-index に変換する。dx/dy はセル寸法に対する比率。 */
+function adjStyle(p) {
+  const a = p.adj;
+  if (!a) return '';
+  return `transform:translate(${(a.dx * 100).toFixed(3)}%,${(a.dy * 100).toFixed(3)}%)`
+       + ` scale(${a.scale}) rotate(${a.rotate}deg);`
+       + `z-index:${10 + a.z};--inv:${(1 / a.scale).toFixed(4)};`;
+}
+
+function ensureAdj(p) {
+  if (!p.adj) p.adj = { dx: 0, dy: 0, scale: 1, rotate: 0, z: 0 };
+  return p.adj;
+}
+
+/** 完全な初期値しか持たないものは「調整あり」と見なさない（選択しただけの写真を除外する） */
+function isAdjAdjusted(p) {
+  const a = p.adj;
+  return !!a && (a.dx !== 0 || a.dy !== 0 || a.scale !== 1 || a.rotate !== 0 || a.z !== 0);
+}
+
+function photoCellEl(id) {
+  return document.querySelector(`.photo-cell[data-pid="${id}"]`);
+}
+function selectedPhoto() {
+  return state.selectedPhotoId == null ? null
+       : state.photos.find(x => String(x.id) === String(state.selectedPhotoId));
+}
+function applyAdj(p) {
+  const cell = photoCellEl(p.id);
+  if (cell) cell.style.cssText = adjStyle(p);
+}
+
+/** 保存ファイルの adj を安全な範囲に収める（調整なしと同じなら null） */
+function normalizeAdj(a) {
+  if (!a || typeof a !== 'object') return null;
+  const num = (v, lo, hi, d) => { const n = +v; return isFinite(n) ? Math.max(lo, Math.min(hi, n)) : d; };
+  const o = {
+    dx:     num(a.dx, -3, 3, 0),
+    dy:     num(a.dy, -3, 3, 0),
+    scale:  num(a.scale, 0.3, 3, 1),
+    rotate: num(a.rotate, -180, 180, 0),
+    z:      Math.round(num(a.z, -5, 30, 0)),
+  };
+  return (o.dx || o.dy || o.scale !== 1 || o.rotate || o.z) ? o : null;
+}
+
+// --- 枠の中の写真 p.crop（形・トリミング）-------------------------------
+// p.adj が「枠そのもの」、p.crop は「枠の中の画像だけ」。適用先のDOMが別なので干渉しない。
+// トリミングは上下左右を削るだけ。値は枠に対する％。
+
+const CELL_ASPECT  = 4 / 3;   // .photo-cell の aspect-ratio と合わせること
+const CROP_DEFAULT = { shape: 'rect', top: 0, right: 0, bottom: 0, left: 0 };
+const CROP_MAX     = 45;      // 1辺あたりの最大カット％
+
+function getCrop(p) { return p.crop || CROP_DEFAULT; }
+function ensureCrop(p) {
+  if (!p.crop) p.crop = { shape: 'rect', top: 0, right: 0, bottom: 0, left: 0 };
+  return p.crop;
+}
+
+/** 完全な初期値しか持たないものは「調整あり」と見なさない */
+function isCropAdjusted(p) {
+  const c = p.crop;
+  return !!c && (c.shape !== 'rect' || c.top !== 0 || c.right !== 0 || c.bottom !== 0 || c.left !== 0);
+}
+
+/**
+ * 形＋トリミングを1本の clip-path にする。
+ * 四角は inset()、丸は「削った後の領域に内接する真円」を ellipse() で表す。
+ */
+function cropClipPath(p) {
+  const c = p.crop;
+  if (!c) return '';
+  if (c.shape !== 'circle') {
+    return `inset(${c.top}% ${c.right}% ${c.bottom}% ${c.left}%)`;
+  }
+  const l = c.left / 100, r = c.right / 100, t = c.top / 100, b = c.bottom / 100;
+  const wRatio = 1 - l - r;                        // 削った後の幅（枠幅比）
+  const hRatio = 1 - t - b;                        // 削った後の高さ（枠高比）
+  const d  = Math.min(wRatio * CELL_ASPECT, hRatio);   // 高さを1としたときの直径
+  const rx = (d / 2 / CELL_ASPECT) * 100;          // 幅に対する％
+  const ry = (d / 2) * 100;                        // 高さに対する％
+  const cx = (l + wRatio / 2) * 100;
+  const cy = (t + hRatio / 2) * 100;
+  return `ellipse(${rx.toFixed(3)}% ${ry.toFixed(3)}% at ${cx.toFixed(3)}% ${cy.toFixed(3)}%)`;
+}
+
+function cropStyle(p) {
+  const cp = cropClipPath(p);
+  return cp ? `clip-path:${cp};` : '';
+}
+
+/** クリップとトリミングハンドルの位置を描き直す */
+function applyCrop(p) {
+  const cell = photoCellEl(p.id);
+  if (!cell) return;
+  const clip = cell.querySelector('.pc-clip');
+  if (clip) clip.style.cssText = cropStyle(p);
+  const c = getCrop(p);
+  const put = (sel, css) => { const e = cell.querySelector(sel); if (e) e.style.cssText = css; };
+  put('.gc-t.t', `top:calc(${c.top}% - 3px);`);
+  put('.gc-t.b', `bottom:calc(${c.bottom}% - 3px);`);
+  put('.gc-t.l', `left:calc(${c.left}% - 3px);`);
+  put('.gc-t.r', `right:calc(${c.right}% - 3px);`);
+}
+
+/** 保存ファイルの crop を安全な範囲に収める（初期値と同じなら null） */
+function normalizeCrop(c) {
+  if (!c || typeof c !== 'object') return null;
+  const num = v => { const n = +v; return isFinite(n) ? Math.max(0, Math.min(CROP_MAX, n)) : 0; };
+  const o = {
+    shape:  c.shape === 'circle' ? 'circle' : 'rect',
+    top:    num(c.top),
+    right:  num(c.right),
+    bottom: num(c.bottom),
+    left:   num(c.left),
+  };
+  if (o.top + o.bottom > 90) { o.top = 0; o.bottom = 0; }
+  if (o.left + o.right > 90) { o.left = 0; o.right = 0; }
+  return (o.shape !== 'rect' || o.top || o.right || o.bottom || o.left) ? o : null;
+}
+
+const FRAMES = ['none', 'white', 'black', 'gold', 'double', 'photo'];
+
+function frameClass(p) {
+  return (p.frame && p.frame !== 'none' && FRAMES.indexOf(p.frame) >= 0) ? ' fr-' + p.frame : '';
+}
+function normalizeFrame(v) {
+  return (typeof v === 'string' && FRAMES.indexOf(v) >= 0 && v !== 'none') ? v : null;
+}
+/** セルのフレームclassだけ差し替える（選択状態やトリミング状態は保つ） */
+function applyFrame(p) {
+  const cell = photoCellEl(p.id);
+  if (!cell) return;
+  FRAMES.forEach(f => cell.classList.remove('fr-' + f));
+  if (p.frame && p.frame !== 'none') cell.classList.add('fr-' + p.frame);
+}
+function setFrame(v) {
+  const p = selectedPhoto();
+  if (!p) return;
+  const f = normalizeFrame(v);
+  if (f) p.frame = f; else delete p.frame;
+  applyFrame(p);
+}
+function updateFrameSelect() {
+  const p  = selectedPhoto();
+  const el = document.getElementById('frm-sel');
+  if (el) el.value = (p && p.frame) ? p.frame : 'none';
+}
+
+/** ツールバーの形ボタンの選択状態 */
+function updateShapeButtons() {
+  const p  = selectedPhoto();
+  const sh = p ? getCrop(p).shape : 'rect';
+  [['rect', 'shp-rect'], ['circle', 'shp-circle']].forEach(([k, id]) => {
+    const b = document.getElementById(id);
+    if (b) b.classList.toggle('on', sh === k);
+  });
+}
+
+/** ツールバー：形を変える（四角 / 丸） */
+function setShape(shape) {
+  const p = selectedPhoto();
+  if (!p) return;
+  ensureCrop(p).shape = (shape === 'circle') ? 'circle' : 'rect';
+  if (!isCropAdjusted(p)) delete p.crop;      // 完全な初期値に戻ったら持たない
+  applyCrop(p);
+  updateShapeButtons();
+}
+
+/** トリミングモードへ（枠は動かさず、上下左右を削るだけ） */
+function enterCropMode() {
+  const p = selectedPhoto();
+  if (!p) return;
+  state.cropMode = true;
+  ensureCrop(p);
+  const cell = photoCellEl(p.id);
+  if (cell) cell.classList.add('pc-crop');
+  applyCrop(p);
+  document.getElementById('cell-normal').style.display = 'none';
+  document.getElementById('cell-crop').style.display   = 'flex';
+}
+
+function exitCropMode() {
+  const p = selectedPhoto();
+  if (p) {
+    const cell = photoCellEl(p.id);
+    if (cell) cell.classList.remove('pc-crop');
+    if (!isCropAdjusted(p)) delete p.crop;
+    applyCrop(p);
+  }
+  state.cropMode = false;
+  const n = document.getElementById('cell-normal');
+  const c = document.getElementById('cell-crop');
+  if (n) n.style.display = 'flex';
+  if (c) c.style.display = 'none';
+}
+
+/** トリミングハンドルのドラッグ＝その辺を内側へ削る */
+function trimPointerDown(e, id, side) {
+  if (e.button > 0) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const p    = state.photos.find(x => String(x.id) === String(id));
+  const cell = photoCellEl(id);
+  if (!p || !cell) return;
+  const c  = ensureCrop(p);
+  const w  = cell.offsetWidth  || 1;
+  const h  = cell.offsetHeight || 1;
+  const x0 = e.clientX, y0 = e.clientY, v0 = c[side];
+  const opp = { left: 'right', right: 'left', top: 'bottom', bottom: 'top' }[side];
+  bindDragEnd(function (ev) {
+    ev.preventDefault();
+    let v;
+    if (side === 'left')        v = v0 + (ev.clientX - x0) / w * 100;
+    else if (side === 'right')  v = v0 - (ev.clientX - x0) / w * 100;
+    else if (side === 'top')    v = v0 + (ev.clientY - y0) / h * 100;
+    else                        v = v0 - (ev.clientY - y0) / h * 100;
+    const limit = Math.min(CROP_MAX, 90 - c[opp]);
+    c[side] = Math.round(Math.max(0, Math.min(limit, v)) * 100) / 100;
+    applyCrop(p);
+  });
+}
+
+/** トリミング：削りをすべて戻す（形は保つ） */
+function cropReset() {
+  const p = selectedPhoto();
+  if (!p) return;
+  const shape = getCrop(p).shape;
+  p.crop = { shape: shape, top: 0, right: 0, bottom: 0, left: 0 };
+  if (!isCropAdjusted(p)) delete p.crop;
+  applyCrop(p);
+}
+
+/** セルを選択してハンドルとツールバーを出す */
+function selectGridPhoto(id) {
+  if (state.cropMode) exitCropMode();
+  deselectGridPhoto();
+  const p    = state.photos.find(x => String(x.id) === String(id));
+  const cell = photoCellEl(id);
+  if (!p || !cell) return;
+  state.selectedPhotoId = id;
+  cell.classList.add('pc-sel');
+  ['nw', 'ne', 'sw', 'se'].forEach(corner => {
+    const h = document.createElement('div');
+    h.className = `gc-h ${corner}`;
+    h.addEventListener('mousedown', e => gridResizeStart(e, id));
+    cell.appendChild(h);
+  });
+  const rot = document.createElement('div');
+  rot.className = 'gc-rot';
+  rot.title = '回転（Shiftで15度ずつ）';
+  rot.addEventListener('mousedown', e => gridRotateStart(e, id));
+  cell.appendChild(rot);
+
+  // トリミング用の上下左右ハンドル（トリミング中だけCSSで表示される）
+  [['t', 'top'], ['b', 'bottom'], ['l', 'left'], ['r', 'right']].forEach(([cls, side]) => {
+    const t = document.createElement('div');
+    t.className = `gc-t ${cls}`;
+    t.addEventListener('mousedown', e => trimPointerDown(e, id, side));
+    cell.appendChild(t);
+  });
+  applyCrop(p);
+
+  document.getElementById('cell-name').textContent = p.name || '写真';
+  document.getElementById('cell-toolbar').style.display = 'flex';
+  updateShapeButtons();
+  updateFrameSelect();
+  deselectSticker();                       // スタンプ側の選択とは排他にする
+}
+
+function deselectGridPhoto() {
+  if (state.cropMode) exitCropMode();
+  const sel = selectedPhoto();
+  if (sel && !isAdjAdjusted(sel)) delete sel.adj;   // 選択しただけなら持たない
+  if (state.selectedPhotoId != null) {
+    const cell = photoCellEl(state.selectedPhotoId);
+    if (cell) {
+      cell.classList.remove('pc-sel');
+      cell.querySelectorAll('.gc-h, .gc-rot, .gc-t').forEach(h => h.remove());
+    }
+  }
+  state.selectedPhotoId = null;
+  const tb = document.getElementById('cell-toolbar');
+  if (tb) tb.style.display = 'none';
+}
+
+/** セル本体のドラッグ＝移動（比率で保存するのでレイアウトが変わっても追従する） */
+function gridPointerDown(e, id) {
+  if (e.button > 0) return;
+  e.preventDefault();
+  e.stopPropagation();
+  if (state.cropMode && String(state.selectedPhotoId) === String(id)) {
+    return;                      // トリミング中は枠も中身も動かさない（ハンドル操作のみ）
+  }
+  selectGridPhoto(id);
+  const p    = state.photos.find(x => String(x.id) === String(id));
+  const cell = photoCellEl(id);
+  if (!p || !cell) return;
+  const a  = ensureAdj(p);
+  const w  = cell.offsetWidth  || 1;
+  const h  = cell.offsetHeight || 1;
+  const x0 = e.clientX, y0 = e.clientY, dx0 = a.dx, dy0 = a.dy;
+  bindDragEnd(function (ev) {
+    ev.preventDefault();
+    a.dx = dx0 + (ev.clientX - x0) / w;
+    a.dy = dy0 + (ev.clientY - y0) / h;
+    applyAdj(p);
+  });
+}
+
+/** 四隅ハンドル＝中心を固定したまま一様に拡大縮小（縦横比は自動的に保たれる） */
+function gridResizeStart(e, id) {
+  if (e.button > 0) return;
+  e.preventDefault();
+  e.stopPropagation();
+  selectGridPhoto(id);
+  const p    = state.photos.find(x => String(x.id) === String(id));
+  const cell = photoCellEl(id);
+  if (!p || !cell) return;
+  const a  = ensureAdj(p);
+  const r  = cell.getBoundingClientRect();
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;   // 変形の中心
+  const d0 = Math.hypot(e.clientX - cx, e.clientY - cy) || 1;
+  const s0 = a.scale;
+  bindDragEnd(function (ev) {
+    ev.preventDefault();
+    const d = Math.hypot(ev.clientX - cx, ev.clientY - cy);
+    a.scale = Math.max(0.3, Math.min(3, Math.round(s0 * d / d0 * 1000) / 1000));
+    applyAdj(p);
+  });
+}
+
+/** 回転ハンドル。Shift押下中は15度刻み。 */
+function gridRotateStart(e, id) {
+  if (e.button > 0) return;
+  e.preventDefault();
+  e.stopPropagation();
+  selectGridPhoto(id);
+  const p    = state.photos.find(x => String(x.id) === String(id));
+  const cell = photoCellEl(id);
+  if (!p || !cell) return;
+  const a  = ensureAdj(p);
+  const r  = cell.getBoundingClientRect();
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  const a0 = Math.atan2(e.clientY - cy, e.clientX - cx);
+  const r0 = a.rotate;
+  bindDragEnd(function (ev) {
+    ev.preventDefault();
+    const ang = Math.atan2(ev.clientY - cy, ev.clientX - cx);
+    let deg = r0 + (ang - a0) * 180 / Math.PI;
+    if (ev.shiftKey) deg = Math.round(deg / 15) * 15;
+    a.rotate = ((Math.round(deg) + 180) % 360 + 360) % 360 - 180;
+    applyAdj(p);
+  });
+}
+
+/** ツールバー：前面 / 背面 */
+function gridZ(delta) {
+  const p = selectedPhoto();
+  if (!p) return;
+  const a = ensureAdj(p);
+  a.z = Math.max(-5, Math.min(30, a.z + delta));
+  applyAdj(p);
+}
+
+/** ツールバー：手動調整を捨てて自動レイアウトの位置・大きさへ戻す */
+function gridReset() {
+  const p = selectedPhoto();
+  if (!p) return;
+  delete p.adj;
+  applyAdj(p);
+}
+
+/** ツールバー：既存の「自由配置写真」へ切り替える */
+function gridToFree() {
+  const id = state.selectedPhotoId;
+  if (id == null) return;
+  deselectGridPhoto();
+  freePlacePhoto(id);
+}
+
+/**
+ * 自動レイアウトの写真1枚を自由配置写真へ移す。
+ * 画像は元の dataURL をそのまま使い、読み込み直しも再エンコードもしない。
+ * state.photos から抜くので、自動レイアウトと二重に出ることはない。
+ */
+function freePlacePhoto(id) {
+  const i = state.photos.findIndex(p => String(p.id) === String(id));
+  if (i < 0) return;
+  const p = state.photos[i];
+  if (p.category === 'birthday') return;          // 誕生日コーナーは対象外
+
+  const cell = photoCellEl(id);
+  if (!cell) return;
+
+  // セルのレイアウト座標（transform の影響を受けない）に手動調整を足して求める。
+  // offsetParent は position:relative の #nl-container なので、スタンプと同じ座標系になる。
+  const a  = p.adj || { dx: 0, dy: 0, scale: 1, rotate: 0, z: 0 };
+  const w0 = cell.offsetWidth  || 1;
+  const h0 = cell.offsetHeight || 1;
+  const cx = cell.offsetLeft + w0 / 2 + a.dx * w0;
+  const cy = cell.offsetTop  + h0 / 2 + a.dy * h0;
+
+  // 60〜520px に収める。上限で切り詰めた分は中心を保つように振り分ける。
+  const size  = Math.max(FREE_PHOTO_MIN, Math.min(FREE_PHOTO_MAX, Math.round(w0 * a.scale)));
+  const dispH = Math.round(size * h0 / w0);
+  const s = {
+    id:      Date.now() + Math.random(),
+    type:    'image',
+    subtype: 'photo',
+    dataUrl: p.dataUrl,                            // 元データをそのまま参照
+    name:    p.name,
+    x:       Math.round(cx - size  / 2),
+    y:       Math.round(cy - dispH / 2),
+    size:    size,
+    rotate:  a.rotate,
+    zIndex:  10 + state.stickers.length,
+    from: {                                        // 自動レイアウトへ戻すための元情報
+      category:     p.category,
+      width:        p.width,
+      height:       p.height,
+      sizeOverride: p.sizeOverride || '',
+    },
+  };
+  state.photos.splice(i, 1);
+  state.stickers.push(s);
+
+  renderPhotoList();
+  generateLayout();
+  renderStickers();
+  selectSticker(s.id);
+}
+
+/** 自由配置へ移した写真を自動レイアウトへ戻す（写真一覧の末尾へ） */
+function backToAutoLayout() {
+  const s = state.stickers.find(x => x.id === state.selectedStickerId);
+  if (!s || !s.from) return;
+  state.photos.push({
+    id:           Date.now() + Math.random(),
+    name:         s.name || '写真',
+    dataUrl:      s.dataUrl,
+    category:     s.from.category,
+    width:        s.from.width,
+    height:       s.from.height,
+    sizeOverride: s.from.sizeOverride || '',
+  });
+  state.stickers = state.stickers.filter(x => x.id !== s.id);
+  deselectSticker();
+  renderPhotoList();
+  generateLayout();
+  renderStickers();
+}
+
+/** 保存ファイルの from を安全な形に整える（未知のカテゴリは日常へ丸める） */
+function normalizeFrom(f) {
+  if (!f || typeof f !== 'object') return null;
+  const cat = (typeof f.category === 'string' && allCats().some(c => c.id === f.category))
+    ? f.category : 'daily';
+  return {
+    category:     cat,
+    width:        +f.width  || 0,
+    height:       +f.height || 0,
+    sizeOverride: f.sizeOverride === 'wide' ? 'wide' : '',
+  };
+}
+
+function renderBirthday(photos, density, mode) {
+  const corner = document.getElementById('birthday-corner');
+  const cont   = document.getElementById('birthday-photos');
+  if (!photos || !photos.length) { corner.style.display = 'none'; return; }
+  corner.style.display = 'block';
+  const n    = photos.length;
+  const base = DENSITY_CFG[density].bdSize;
+  const sz   = (mode === 'birthday') ? Math.round(base * 1.25) : base;
+
+  // 少人数ほど余白が大きく見えるので底上げする。人数が増えるにつれ自然に小さくなり、
+  // 5人以上は従来の計算そのまま。Math.max なので既存より小さくなることはない。
+  let small;
+  if (n === 1)      small = Math.max(sz, BD_SIZE_1);
+  else if (n === 2) small = Math.max(sz, BD_SIZE_2);
+  else if (n === 3) small = Math.max(sz, BD_SIZE_3);
+  else if (n === 4) small = Math.max(sz, BD_SIZE_4);
+  else              small = n > 6 ? Math.round(sz * .75) : sz;
+
+  // 3〜4人は横一列を保ちつつ間隔を少し広めに（5人以上は従来どおり）
+  const gap = (n <= 2) ? 30 : (n <= 4 ? 20 : 10);
+  cont.style.cssText =
+    `display:flex;gap:${gap}px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1`;
+  cont.innerHTML = photos.map(p =>
+    `<img class="birthday-photo" src="${p.dataUrl}" alt="誕生日"
+          style="width:${small}px;height:${small}px">`
+  ).join('');
+
+  renderBirthdayDeco(n);
+}
+
+/** 誕生日コーナーの水彩装飾を人数別に描き直す */
+function renderBirthdayDeco(n) {
+  const layer = document.getElementById('birthday-deco');
+  if (!layer) return;
+  const list = BD_DECO[n] || BD_DECO.many;
+  layer.innerHTML = list.map(d =>
+    `<img class="bd-deco" src="${ILLUST_DIR}/${d.file}.png" alt="" style="${d.css}">`
+  ).join('');
+}
+
+/** 「🔄 自動レイアウト」ボタン用。写真が無いときだけ案内を出す。 */
+function runAutoLayout() {
+  if (!state.photos.length) { alert('写真をアップロードしてください'); return; }
+  generateLayout();
+}
+
+function generateLayout() {
+  const total   = state.photos.length;
+  const mode    = state.layoutMode;
+  const density = computeDensity(total, mode);
+  const cfg     = DENSITY_CFG[density];
+
+  // 誕生日カテゴリは自動レイアウトの枚数に数えない（誕生日コーナーは別枠）
+  const normalCount = state.photos.filter(p => p.category !== 'birthday').length;
+  const warnEl = document.getElementById('nl-warning');
+  if (normalCount > AUTO_LAYOUT_MAX) {
+    document.getElementById('nl-warning-text').textContent =
+      `自動レイアウトは${AUTO_LAYOUT_MAX}枚までがおすすめです。` +
+      `追加の写真は「写真を自由配置」から載せることができます。（現在${normalCount}枚）`;
+    warnEl.style.display = 'flex';
+  } else {
+    warnEl.style.display = 'none';
+  }
+  clearPrintFit();   // 内容が変わったら前回の印刷倍率を無効化
+
+  const badge = document.getElementById('layout-badge');
+  const wrap  = document.getElementById('layout-badge-wrap');
+  badge.textContent = `${cfg.label} · ${total}枚`;
+  badge.className   = `layout-badge ${cfg.badgeClass}`;
+  wrap.style.display = total ? 'block' : 'none';
+
+  const groups = {};
+  allCats().forEach(c => (groups[c.id] = []));
+  state.photos.forEach(p => (groups[p.category] || groups.other).push(p));
+
+  renderBirthday(groups.birthday, density, mode);
+
+  deselectGridPhoto();          // セルを作り直すので選択は一度解除する
+  const secEl = document.getElementById('nl-sections');
+  secEl.innerHTML = '';
+  allSections().forEach(s => {
+    const photos = groups[s.id];
+    if (!photos || !photos.length) return;
+    const featured = isFeatured(s.id, mode);
+    const sec = document.createElement('div');
+    sec.className = 'nl-section';
+    sec.innerHTML = `
+      <div class="nl-sec-header">
+        <div class="nl-sec-title" style="background:${s.color};${s.textColor?'color:'+s.textColor+';':''}${featured?'font-size:15px;padding:6px 16px':''}">${s.icon ? s.icon + ' ' : ''}${escHtml(s.label)}${featured?' ★':''}</div>
+        <div class="nl-sec-line" style="background:${s.color}"></div>
+      </div>
+      ${buildGrid(photos, density, featured)}
+    `;
+    secEl.appendChild(sec);
+  });
+
+  if (!state.comment) generateComment();
+}
+
+// ============================================================
+// COMMENT
+// ============================================================
+function generateComment() {
+  const m      = +document.getElementById('pub-month').value || new Date().getMonth() + 1;
+  const season = seasonOf(m);
+  const cats   = [...new Set(state.photos.map(p => p.category))].filter(c => c !== 'birthday');
+  const labels = cats.slice(0, 3).map(id => { const c = allCats().find(x=>x.id===id); return c?c.label:''; }).filter(Boolean);
+  const evStr  = labels.length ? labels.join('や') : '様々な活動';
+  const pool   = COMMENTS[season];
+  const text   = pool[Math.floor(Math.random()*pool.length)].replace('{events}', evStr);
+  state.comment = text;
+  document.getElementById('nl-intro-text').textContent = text;
+}
+
+function showCommentEditor() {
+  const cur = document.getElementById('nl-intro-text').textContent;
+  document.getElementById('comment-ta').value = cur;
+  document.getElementById('char-count').textContent = cur.length;
+  document.getElementById('comment-modal').style.display = 'flex';
+}
+function applyComment() {
+  const v = document.getElementById('comment-ta').value;
+  state.comment = v;
+  document.getElementById('nl-intro-text').textContent = v;
+  closeCommentModal();
+}
+function closeCommentModal() { document.getElementById('comment-modal').style.display = 'none'; }
+function closeModalOv(e)     { if (e.target === e.currentTarget) closeCommentModal(); }
+
+// ============================================================
+// COMMENT GENERATION (RICH TEMPLATE ENGINE)
+// ============================================================
+
+function rnd(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+/**
+ * Fragment picker with two levels of de-duplication:
+ *  - within one call to generatePatterns() the same fragment is never reused
+ *    (so パターンA/B/C do not share an opener, event format or closer)
+ *  - across calls, the fragments used by the previous run are avoided first,
+ *    so 「もう一度生成」 produces different wording
+ * Falls back to a wider candidate set when an array is too small, so it can
+ * never fail to return a value.
+ */
+const recentPicks = {};
+
+function makePicker() {
+  const usedNow = new Set();
+  const prev    = Object.assign({}, recentPicks); // snapshot of the previous run
+  return function pick(arr, key) {
+    if (!arr || !arr.length) return '';
+    const recent = prev[key] || [];
+    let cands = arr.filter(v => !usedNow.has(v) && recent.indexOf(v) === -1);
+    if (!cands.length) cands = arr.filter(v => !usedNow.has(v));
+    if (!cands.length) cands = arr;
+    const v = cands[Math.floor(Math.random() * cands.length)];
+    usedNow.add(v);
+    const keep = Math.min(Math.floor(arr.length / 2), arr.length - 1);
+    recentPicks[key] = keep > 0 ? [v].concat(recentPicks[key] || []).slice(0, keep) : [];
+    return v;
+  };
+}
+
+/**
+ * Normalises the free-text inputs so they connect naturally to the templates.
+ *  - trims stray punctuation / separators
+ *  - rewrites polite endings to their plain form (ました→た, でした→だった …)
+ *  - classifies the 印象 input by its ending, so only grammatically compatible
+ *    impFmt entries are offered (see TPL.impFmt)
+ * Returns a new object; the caller's input object is left untouched.
+ */
+function normalizeInputs(raw) {
+  const clean = s => String(s == null ? '' : s)
+    .trim()
+    .replace(/[。．]+$/, '')
+    .replace(/^[、,]+/, '')
+    .replace(/[、,]+$/, '')
+    .trim();
+
+  const events = clean(raw.events)
+    .replace(/[,\/／・･]/g, '、')
+    .replace(/、\s*/g, '、')
+    .replace(/、+/g, '、')
+    .replace(/(など|等)$/, '')
+    .replace(/、$/, '');
+
+  const impression = clean(raw.impression)
+    .replace(/でした$/, 'だった')
+    .replace(/ました$/, 'た')
+    .replace(/ます$/, 'る')
+    .replace(/です$/, '')
+    .replace(/[、,]+$/, '');
+
+  const staff = clean(raw.staff).replace(/[！!]+$/, '');
+
+  return Object.assign({}, raw, {
+    events:     events,
+    impression: impression,
+    seasonal:   clean(raw.seasonal),
+    staff:      staff,
+    impKind:    impressionKind(impression),
+  });
+}
+
+/** Which TPL.impFmt group can follow this 印象 input. */
+function impressionKind(s) {
+  if (!s) return 'rentai';
+  if (/[てで]$/.test(s))                            return 'te';
+  if (/(た|だ|る|い|う|く|な|ない|ぬ|ん)$/.test(s))  return 'rentai';
+  return 'noun';
+}
+
+/**
+ * Counts the repetitive spots in a finished comment:
+ *  - the same 2+ character word appearing three times or more
+ *  - three sentences in a row ending the same way
+ *  - two neighbouring sentences sharing a 5+ character phrase
+ * 0 means the text reads cleanly; generatePatterns() keeps the lowest score.
+ */
+function hasRepetition(text) {
+  let score = 0;
+  const words = text.match(/[一-龥ぁ-んァ-ヴー々]{2,}/g) || [];
+  const seen  = {};
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i];
+    if (w.length < 2) continue;
+    seen[w] = (seen[w] || 0) + 1;
+    if (seen[w] === 3) score++;
+  }
+  const sents = text.split('。').map(s => s.replace(/[　\s]+/g, '')).filter(Boolean);
+  let run = 1;
+  for (let i = 1; i < sents.length; i++) {
+    const a = sents[i - 1].slice(-3);
+    const b = sents[i].slice(-3);
+    run = (a && a === b) ? run + 1 : 1;
+    if (run >= 3) score++;
+    if (sharesPhrase(sents[i - 1], sents[i], 5)) score++;
+  }
+  return score;
+}
+
+/** true when a and b share any substring of `len` characters. */
+function sharesPhrase(a, b, len) {
+  for (let i = 0; i + len <= a.length; i++) {
+    if (b.indexOf(a.slice(i, i + len)) !== -1) return true;
+  }
+  return false;
+}
+
+
+/** Open generation modal, pre-fill inputs from current state */
+function showGenModal() {
+  const m = +document.getElementById('pub-month').value || new Date().getMonth() + 1;
+  document.getElementById('gen-month').value = m;
+  document.getElementById('gen-results').style.display = 'none';
+
+  // Auto-suggest events from current photo categories
+  const evInput = document.getElementById('gen-events');
+  if (!evInput.value) {
+    const cats   = [...new Set(state.photos.map(p => p.category))].filter(c => c !== 'birthday');
+    const labels = cats.slice(0, 3).map(id => { const c = allCats().find(x=>x.id===id); return c?c.label:''; }).filter(Boolean);
+    if (labels.length) evInput.value = labels.join('、');
+  }
+
+  document.getElementById('gen-modal').style.display = 'flex';
+}
+
+function closeGenModal()      { document.getElementById('gen-modal').style.display = 'none'; }
+function closeGenModalBg(e)   { if (e.target === e.currentTarget) closeGenModal(); }
+
+/** Update character count display for a pattern textarea */
+function updateGenCount(key) {
+  const n   = document.getElementById(`gta-${key}`).value.length;
+  const el  = document.getElementById(`cnt-${key}`);
+  const ok  = n >= 100 && n <= 150;
+  el.textContent = `${n}文字 ${ok ? '✓' : n < 100 ? '(もう少し長く)' : '(やや長め)'}`;
+  el.className   = `gen-pat-count ${ok ? 'gen-pat-ok' : 'gen-pat-warn'}`;
+}
+
+/** Apply selected pattern to newsletter */
+function usePattern(key) {
+  const text = document.getElementById(`gta-${key}`).value;
+  if (!text.trim()) return;
+  state.comment = text;
+  document.getElementById('nl-intro-text').textContent = text;
+  closeGenModal();
+}
+
+/** Run generation and display 3 patterns */
+function runGenerate() {
+  const inputs = {
+    month:      +document.getElementById('gen-month').value || (new Date().getMonth() + 1),
+    typeId:      document.getElementById('gen-type').value,
+    events:      document.getElementById('gen-events').value.trim(),
+    impression:  document.getElementById('gen-impression').value.trim(),
+    seasonal:    document.getElementById('gen-seasonal').value.trim(),
+    staff:       document.getElementById('gen-staff').value.trim(),
+  };
+
+  const patterns = generatePatterns(inputs);
+  const tones    = patterns.tones || [];
+  ['a', 'b', 'c'].forEach((key, i) => {
+    document.getElementById(`gta-${key}`).value = patterns[i];
+    const lbl = document.getElementById(`lbl-${key}`);
+    if (lbl && tones[i]) lbl.textContent = `パターン${key.toUpperCase()}：${tones[i]}`;
+    updateGenCount(key);
+  });
+
+  const res = document.getElementById('gen-results');
+  res.style.display = 'block';
+  res.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/**
+ * Core generation engine — returns [patternA, patternB, patternC].
+ *
+ * Per pattern: 内部トーン (TPL.tone) と 文型レシピ (STRUCTURES) を1つずつ割り当て、
+ * 断片を makePicker() で抽選し、adjustLength() で目標文字数へ寄せ、
+ * hasRepetition() が最も少ない候補を採用します。
+ * 戻り値の配列には、表示用のトーン名を `tones` プロパティとして持たせています
+ * （0/1/2 は従来どおり文字列なので、既存の呼び出し側はそのまま動きます）。
+ */
+function generatePatterns(rawInputs) {
+  const inp     = normalizeInputs(rawInputs);
+  const m       = inp.month;
+  const type    = inp.typeId;
+  const ev      = inp.events;
+  const imp     = inp.impression;
+  const sw      = inp.seasonal;
+  const sf      = inp.staff;
+  const mo      = TPL.intro[m]   || TPL.intro[4];
+  const ctx     = TPL.context[m] || TPL.context[4];
+  const closers = TPL.closers[type] || TPL.closers.gentle;
+  const openers = TPL.typeOpeners[type] || TPL.typeOpeners.gentle;
+  const tones   = TONE_BY_TYPE[type] || TONE_BY_TYPE.gentle;
+  const isShort = type === 'short';
+  const isFull  = type === 'full';
+  const maxMid  = isShort ? 3 : isFull ? 6 : 5;          // 締めの前に置ける文の上限
+  const target  = isShort ? [60, 95] : isFull ? [135, 175] : [100, 150];
+
+  // 入力の語尾に合う印象フォーマットだけを候補にする（TPL.impFmt 参照）
+  const impPool = (TPL.impFmt[inp.impKind] || TPL.impFmt.rentai).concat(TPL.impFmt.any);
+
+  const pick = makePicker();
+
+  /** 1パターン分の断片を抽選する（トーンは呼び出し側で固定） */
+  function drawParts(toneId) {
+    const tone = TPL.tone[toneId] || TPL.tone.hokkori;
+    return {
+      intro:  pick(mo, `intro_${m}`),
+      ctx:    pick(ctx, `ctx_${m}`),
+      ev:     ev  ? pick(TPL.eventFmt, 'eventFmt').replace('{E}', ev)  : '',
+      im:     imp ? pick(impPool, `impFmt_${inp.impKind}`).replace('{I}', imp) : '',
+      swLead: sw  ? pick(TPL.seasonalFmt, 'seasonalFmt').replace('{S}', sw) : '',
+      sfLine: sf  ? pick(TPL.staffFmt,    'staffFmt'   ).replace('{F}', sf) : '',
+      typeOp: pick(openers, `typeOpeners_${type}`),
+      close:  pick(closers, `closers_${type}`),
+      bridge: pick(TPL.bridge, 'bridge'),
+      toneOpen:  pick(tone.open,  `toneOpen_${toneId}`),
+      toneSpice: pick(tone.spice, `toneSpice_${toneId}`),
+      toneClose: pick(tone.close, `toneClose_${toneId}`),
+      fallback:  pick(TPL.fallbackMid, 'fallbackMid'),
+      fallback2: pick(TPL.fallbackMid, 'fallbackMid'),
+      fallback3: pick(TPL.fallbackMid, 'fallbackMid'),
+    };
+  }
+
+  /** 先頭に付く句 — 本文が空なら句も出さない */
+  function pre(lead, sentence) { return sentence ? lead + sentence : ''; }
+  /** 必須文 / 省略可能な文 */
+  function core(s) { return { s: s, opt: false }; }
+  function opt(s)  { return { s: s, opt: true  }; }
+
+  function render(spec) {
+    let body = spec.body.filter(b => b.s);
+    if (!body.length) body = [core(spec.fallback)];
+    if (body.length > maxMid) body = body.slice(0, maxMid);
+    // frank/short/full の typeOpeners は文として完結しているので区切りを入れる
+    const sep = /[。！]$/.test(spec.lead) ? '　' : '';
+    return `${spec.lead}${sep}${body.map(b => b.s).join('　')}　${spec.close}`;
+  }
+
+  /**
+   * 目標文字数へ寄せる。短ければ季節文脈・トーンの一言などを足し、
+   * 長ければ省略可能な文から外す。文の途中で切ることはしない。
+   */
+  function adjustLength(spec, P) {
+    // 短い → 季節文脈・トーンの一言・汎用文をこの順で足す
+    const extras = [P.toneSpice, pre(P.ctx + '、', P.fallback2), P.fallback, pre(P.bridge, P.fallback3)];
+    for (let i = 0; i < extras.length; i++) {
+      if (render(spec).length >= target[0] || spec.body.filter(b => b.s).length >= maxMid) break;
+      const s = extras[i];
+      if (!s || spec.body.some(b => b.s === s)) continue;
+      spec.body.push(opt(s));
+    }
+    // 長い → 省略可能な文、次に末尾の文を外す（下限を大きく割り込むなら外さない）
+    while (spec.body.filter(b => b.s).length > 1) {
+      const len = render(spec).length;
+      if (len <= target[1]) break;
+      let idx = -1;
+      for (let i = spec.body.length - 1; i >= 0; i--) if (spec.body[i].opt && spec.body[i].s) { idx = i; break; }
+      if (idx < 0) for (let i = spec.body.length - 1; i >= 0; i--) if (spec.body[i].s) { idx = i; break; }
+      if (idx < 0) break;
+      const dropped = spec.body.splice(idx, 1);
+      const shortfall = target[0] - render(spec).length;
+      if (shortfall > len - target[1]) { spec.body.splice(idx, 0, dropped[0]); break; }
+    }
+    return spec;
+  }
+
+  // ── 文型レシピ（8種）──────────────────────────────────────
+  const STRUCTURES = {
+    // 基本
+    s1: P => ({ lead: '', body: [core(P.intro), core(P.ev), core(P.im)], close: P.close }),
+    // 季節文脈
+    s2: P => ({ lead: '', body: [core(P.intro), core(pre(P.ctx + '、', P.im || P.ev)), opt(P.toneSpice)], close: P.close }),
+    // 季節ワード起点
+    s3: P => ({ lead: P.swLead || P.ctx + '、', body: [core(P.ev || P.intro), core(P.im)], close: P.toneClose }),
+    // トーン起点
+    s4: P => ({ lead: P.toneOpen, body: [core(P.ev), core(P.im), core(P.sfLine)], close: P.close }),
+    // 印象先行
+    s5: P => ({ lead: '', body: [core(P.intro), core(P.im), core(pre(P.bridge, P.ev))], close: P.toneClose }),
+    // タイプ起点
+    s6: P => ({ lead: P.typeOp, body: [core(P.intro), core(P.ev), core(P.im)], close: P.close }),
+    // 職員の声起点
+    s7: P => ({ lead: '', body: [core(P.sfLine), core(P.intro), core(P.ev), core(P.im)], close: P.close }),
+    // 二段締め
+    s8: P => ({ lead: '', body: [core(P.intro), core(pre(P.bridge, P.ev)), core(P.im)],
+                close: isFull && !sharesPhrase(P.toneClose, P.close, 5)
+                  ? `${P.toneClose}　${P.close}` : P.toneClose }),
+  };
+  const RECIPES = Object.keys(STRUCTURES);
+
+  const out    = [];
+  const labels = [];
+  for (let i = 0; i < 3; i++) {
+    // トーンと文型はパターンごとに1回だけ決める（A/B/C で必ず異なる）
+    const toneId = pick(tones, `tones_${type}`);
+    const recipe = pick(RECIPES, `structure_${type}`);
+    let best = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const P    = drawParts(toneId);
+      const spec = STRUCTURES[recipe](P);
+      spec.fallback = P.fallback;          // 全要素が空だったときの保険
+      adjustLength(spec, P);
+      const text  = render(spec);
+      const score = hasRepetition(text);
+      if (!best || score < best.score) best = { text: text, score: score };
+      if (score === 0) break;
+    }
+    out.push(best.text);
+    labels.push((TPL.tone[toneId] || TPL.tone.hokkori).label);
+  }
+  out.tones = labels;
+  return out;
+}
+
+// ============================================================
+// DECORATION PANEL
+// ============================================================
+function toggleDecoPanel() {
+  const tray = document.getElementById('deco-tray');
+  const btn  = document.getElementById('btn-deco');
+  const open = tray.style.display === 'none';
+  tray.style.display = open ? 'block' : 'none';
+  btn.classList.toggle('active', open);
+  if (open) renderDecoPanel();
+}
+
+function renderDecoPanel() {
+  const m = +document.getElementById('pub-month').value || new Date().getMonth() + 1;
+
+  // Monthly recommendations
+  const monthly = MONTHLY_STAMPS[m] || [];
+  document.getElementById('monthly-stamps').innerHTML =
+    monthly.map(e => `<button class="stamp-btn" onclick="addSticker('${e}')">${e}</button>`).join('');
+
+  // Group tabs
+  document.getElementById('deco-tabs').innerHTML =
+    STAMP_GROUPS.map((g, i) =>
+      `<button class="deco-tab${i===activeDecoGroup?' active':''}" onclick="switchDecoGroup(${i})">${g.label}</button>`
+    ).join('');
+
+  // Group stamps
+  const grp = STAMP_GROUPS[activeDecoGroup];
+  const box = document.getElementById('deco-stamps');
+  if (grp.id === 'illust') {
+    box.className = 'illust-grid';
+    box.innerHTML = ILLUSTRATIONS.map(it =>
+      `<button class="illust-btn" title="${it.label}" onclick="addImageSticker('${it.file}')">` +
+      `<img src="${ILLUST_DIR}/thumbs/${it.file}.png" alt="${it.label}" loading="lazy"` +
+      ` onerror="this.onerror=null;this.src='${ILLUST_DIR}/${it.file}.png'">` +
+      `<span>${it.label}</span></button>`
+    ).join('');
+  } else {
+    box.className = 'stamp-grid';
+    box.innerHTML = grp.stamps.map(e =>
+      `<button class="stamp-btn" onclick="addSticker('${e}')">${e}</button>`
+    ).join('');
+  }
+}
+
+function switchDecoGroup(i) {
+  activeDecoGroup = i;
+  renderDecoPanel();
+}
+
+// ============================================================
+// STICKER SYSTEM
+// ============================================================
+
+/** Add a new sticker to the newsletter center area */
+function addSticker(emoji) {
+  const nl = document.getElementById('nl-container');
+  const w  = nl.offsetWidth;
+  const h  = nl.offsetHeight;
+
+  // Place in upper-center area with slight randomness
+  const x = w * 0.3 + Math.random() * w * 0.35;
+  const y = h * 0.12 + Math.random() * h * 0.35;
+
+  const s = {
+    id:     Date.now() + Math.random(),
+    emoji,
+    x:      Math.round(x),
+    y:      Math.round(y),
+    size:   38,
+    rotate: 0,
+    zIndex: 10 + state.stickers.length,
+  };
+  state.stickers.push(s);
+  renderStickers();
+  selectSticker(s.id);
+}
+
+/**
+ * Normalise stickers coming from a saved file.
+ * `type` が無いものは従来どおり絵文字として扱うので、旧JSONもそのまま読めます。
+ * 画像は ILLUSTRATIONS に存在するファイル名だけを採用します。
+ */
+function normalizeStickers(list) {
+  return (list || []).map(s => {
+    const base = {
+      id:     s.id != null ? s.id : Date.now() + Math.random(),
+      x:      +s.x || 0,
+      y:      +s.y || 0,
+      rotate: +s.rotate || 0,
+      zIndex: +s.zIndex || 10,
+    };
+    if (s.type === 'text') {
+      // 自由配置テキスト：文字列と既知の direction だけ採用する
+      const t = (typeof s.text === 'string') ? s.text.slice(0, TEXT_MAX_LEN) : '';
+      if (!t.trim()) return null;                       // 中身が無いものは捨てる
+      base.type      = 'text';
+      base.text      = t;
+      base.direction = (s.direction === 'vertical') ? 'vertical' : 'horizontal';
+      base.fontKey   = fontKeyOf(s.fontKey);
+      const n = Math.round(+s.size) || TEXT_INIT_SIZE;
+      base.size = Math.min(TEXT_MAX_SIZE, Math.max(TEXT_MIN_SIZE, n));
+    } else if (s.type === 'image') {
+      base.type = 'image';
+      if (s.src) {
+        // テンプレ画像：ILLUSTRATIONS に存在するファイル名だけ採用する
+        const it = ILLUSTRATIONS.find(i => i.file === s.src);
+        if (!it) return null;                     // 未知のファイル名は捨てる
+        base.src = it.file; base.name = it.label;
+        base.size = +s.size || 130;
+      } else if (typeof s.dataUrl === 'string' && USER_IMG_RE.test(s.dataUrl)) {
+        // ユーザー追加画像：PNG / JPEG / WebP の dataURL だけ採用する
+        const isPhoto = (s.subtype === 'photo');   // 既知の subtype だけ引き継ぐ
+        base.dataUrl = s.dataUrl;
+        base.name    = s.name || (isPhoto ? '写真' : '画像スタンプ');
+        base.size    = +s.size || (isPhoto ? FREE_PHOTO_INIT : STICKER_IMG_INIT);
+        if (isPhoto) {
+          base.subtype = 'photo';
+          const f = normalizeFrom(s.from);          // 自動レイアウト由来なら戻せるようにする
+          if (f) base.from = f;
+        }
+      } else {
+        return null;                              // src も正しい dataUrl も無いものは捨てる
+      }
+    } else {
+      base.emoji = s.emoji || '✨';
+      base.size  = +s.size || 38;
+    }
+    return base;
+  }).filter(Boolean);
+}
+
+/** Add an illustration (image) sticker — same lifecycle as an emoji sticker */
+function addImageSticker(file) {
+  const it = ILLUSTRATIONS.find(i => i.file === file);
+  if (!it) return;
+  const nl = document.getElementById('nl-container');
+  const w  = nl.offsetWidth;
+  const h  = nl.offsetHeight;
+  const size = 130;                                   // 幅。高さは画像の比率で決まる
+
+  const s = {
+    id:     Date.now() + Math.random(),
+    type:   'image',
+    src:    it.file,
+    name:   it.label,
+    x:      Math.round(w * 0.5 - size / 2 + (Math.random() - 0.5) * w * 0.16),
+    y:      Math.round(h * 0.30 + (Math.random() - 0.5) * h * 0.14),
+    size:   size,
+    rotate: 0,
+    zIndex: 10 + state.stickers.length,
+  };
+  state.stickers.push(s);
+  renderStickers();
+  selectSticker(s.id);
+}
+
+// ------------------------------------------------------------
+// ユーザー追加の画像スタンプ（写真アップロードとは別系統）
+// ------------------------------------------------------------
+
+/** 装飾パネルの「＋ イラスト画像」から追加（中央付近に配置） */
+function handleStickerFileInput(e) {
+  addUserImageStickers(e.target.files, null, 'illust');
+  e.target.value = '';
+}
+
+/** 「＋ 写真を自由配置」から追加（中央付近に配置） */
+function handleFreePhotoInput(e) {
+  addUserImageStickers(e.target.files, null, 'photo');
+  e.target.value = '';
+}
+
+/** 警告バナー / 装飾パネルから自由配置写真のファイル選択を開く */
+function openFreePhotoPicker() {
+  document.getElementById('free-photo-input').click();
+}
+
+/** dataTransfer にファイルが含まれているか */
+function hasDroppedFiles(e) {
+  const t = e.dataTransfer && e.dataTransfer.types;
+  return !!t && Array.prototype.indexOf.call(t, 'Files') !== -1;
+}
+
+/** 画像スタンプのドロップ領域を設定する（写真用 #upload-zone には触れない） */
+function setupStickerDrop() {
+  const nl   = document.getElementById('nl-container');
+  const tray = document.getElementById('deco-tray');
+
+  // 広報誌の上 → 自由配置写真としてドロップした位置に配置
+  // contenteditable へ画像が落ちるのを防ぐためキャプチャ段階で受け取る
+  nl.addEventListener('dragover', e => {
+    if (!hasDroppedFiles(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    nl.classList.add('sticker-drop');
+  }, true);
+  nl.addEventListener('dragleave', e => {
+    if (!nl.contains(e.relatedTarget)) nl.classList.remove('sticker-drop');
+  }, true);
+  nl.addEventListener('drop', e => {
+    if (!hasDroppedFiles(e)) return;
+    e.preventDefault();
+    nl.classList.remove('sticker-drop');
+    const rect = nl.getBoundingClientRect();
+    // 広報誌へ直接ドロップした画像は「自由配置写真」として扱う
+    addUserImageStickers(e.dataTransfer.files,
+      { x: e.clientX - rect.left, y: e.clientY - rect.top }, 'photo');
+  }, true);
+
+  // 装飾パネル → 中央付近に配置
+  tray.addEventListener('dragover', e => {
+    if (!hasDroppedFiles(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    tray.classList.add('drag-over');
+  });
+  tray.addEventListener('dragleave', e => {
+    if (!tray.contains(e.relatedTarget)) tray.classList.remove('drag-over');
+  });
+  tray.addEventListener('drop', e => {
+    if (!hasDroppedFiles(e)) return;
+    e.preventDefault();
+    tray.classList.remove('drag-over');
+    addUserImageStickers(e.dataTransfer.files, null, 'illust');
+  });
+
+  // 領域外へ落としたときにブラウザが画像を開いて編集内容が消えるのを防ぐ
+  document.addEventListener('dragover', e => { if (hasDroppedFiles(e)) e.preventDefault(); });
+  document.addEventListener('drop',     e => { if (hasDroppedFiles(e)) e.preventDefault(); });
+}
+
+/**
+ * 選択／ドロップされた画像を画像スタンプとして追加する。
+ * pos  … {x, y}（nl-container 内の座標）を渡すとその位置へ、null なら中央付近へ置く
+ * kind … 'photo' なら自由配置写真（subtype:'photo'）、それ以外はイラスト画像
+ */
+function addUserImageStickers(files, pos, kind) {
+  const list = Array.from(files || []);
+  if (!list.length) return;
+
+  const imgs = list.filter(f => STICKER_IMG_TYPES.indexOf(f.type) !== -1);
+  if (!imgs.length) {
+    alert('使えるのは PNG / JPEG / WebP の画像です。');
+    return;
+  }
+  if (imgs.length < list.length) {
+    alert('PNG / JPEG / WebP 以外のファイルは追加されませんでした。');
+  }
+
+  imgs.forEach((f, i) => {
+    const r = new FileReader();
+    r.onload = ev => {
+      const im = new Image();
+      im.onload  = () => placeUserImageSticker(im, ev.target.result, f, pos, i, kind);
+      im.onerror = () => alert('「' + f.name + '」を画像として読み込めませんでした。');
+      im.src = ev.target.result;
+    };
+    r.onerror = () => alert('「' + f.name + '」を読み込めませんでした。');
+    r.readAsDataURL(f);
+  });
+}
+
+/**
+ * 長辺が STICKER_IMG_MAX を超える画像だけ縮小して dataURL を返す。
+ * 透過を保つため PNG / WebP は PNG、JPEG は JPEG として書き出す。
+ * 縮小不要なら元の dataURL をそのまま使う（再エンコードによる劣化・肥大を避ける）。
+ */
+function shrinkStickerImage(im, rawDataUrl, mime) {
+  const long = Math.max(im.width, im.height);
+  if (!long || long <= STICKER_IMG_MAX) return rawDataUrl;
+
+  const scale = STICKER_IMG_MAX / long;
+  const cv    = document.createElement('canvas');
+  cv.width    = Math.max(1, Math.round(im.width  * scale));
+  cv.height   = Math.max(1, Math.round(im.height * scale));
+  cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+  try {
+    return mime === 'image/jpeg'
+      ? cv.toDataURL('image/jpeg', 0.9)
+      : cv.toDataURL('image/png');     // WebP も PNG で書き出して透過を維持する
+  } catch (_) {
+    return rawDataUrl;                 // 変換できない場合は元画像のまま
+  }
+}
+
+/** 縮小・初期サイズ・配置を決めてスタンプを1枚追加する */
+function placeUserImageSticker(im, rawDataUrl, file, pos, index, kind) {
+  const nl = document.getElementById('nl-container');
+  const w  = nl.offsetWidth;
+  const h  = nl.offsetHeight;
+
+  const dataUrl = shrinkStickerImage(im, rawDataUrl, file.type);
+  const ratio   = (im.width && im.height) ? im.width / im.height : 1;   // 縦横比は維持
+  const init    = (kind === 'photo') ? FREE_PHOTO_INIT : STICKER_IMG_INIT;
+  const size    = Math.round(ratio >= 1 ? init : init * ratio);
+  const dispH   = Math.round(size / ratio);
+
+  // 複数枚まとめて追加したときに完全には重ならないよう少しずらす
+  const shift = index * 16;
+  let x, y;
+  if (pos) {
+    x = pos.x - size  / 2 + shift;
+    y = pos.y - dispH / 2 + shift;
+  } else {
+    x = w * 0.5  - size  / 2 + shift + (Math.random() - 0.5) * w * 0.10;
+    y = h * 0.30 - dispH / 2 + shift + (Math.random() - 0.5) * h * 0.10;
+  }
+  x = Math.max(-size  / 2, Math.min(w - size  / 2, x));
+  y = Math.max(-dispH / 2, Math.min(h - dispH / 2, y));
+
+  const s = {
+    id:      Date.now() + Math.random(),
+    type:    'image',
+    dataUrl: dataUrl,
+    name:    file.name || '画像スタンプ',
+    x:       Math.round(x),
+    y:       Math.round(y),
+    size:    size,
+    rotate:  0,
+    zIndex:  10 + state.stickers.length,
+  };
+  if (kind === 'photo') s.subtype = 'photo';    // イラストと区別する
+  state.stickers.push(s);
+  renderStickers();
+  selectSticker(s.id);
+}
+
+// ------------------------------------------------------------
+// 自由配置テキスト
+// ------------------------------------------------------------
+
+/** 装飾パネルの入力欄からテキストを追加する */
+function addTextStickerFromPanel() {
+  const inp = document.getElementById('deco-text-input');
+  addTextSticker(inp.value.trim());
+  inp.value = '';
+}
+
+/** テキストを紙面の上部中央あたりに追加する */
+function addTextSticker(text) {
+  const nl = document.getElementById('nl-container');
+  const w  = nl.offsetWidth;
+  const h  = nl.offsetHeight;
+  const s = {
+    id:        Date.now() + Math.random(),
+    type:      'text',
+    text:      (text || 'テキスト').slice(0, TEXT_MAX_LEN),
+    direction: 'horizontal',
+    fontKey:   FONT_DEFAULT,
+    x:         Math.round(w * 0.32),
+    y:         Math.round(h * 0.22),
+    size:      TEXT_INIT_SIZE,
+    rotate:    0,
+    zIndex:    10 + state.stickers.length,
+  };
+  state.stickers.push(s);
+  renderStickers();
+  selectSticker(s.id);
+}
+
+/** ツールバー：文字内容を変更（位置・サイズ・角度・重なり順はそのまま） */
+function stickerTextSet(v) {
+  const s = state.stickers.find(s => s.id === state.selectedStickerId);
+  if (!s || s.type !== 'text') return;
+  s.text = (v || '').slice(0, TEXT_MAX_LEN);
+  const el = document.getElementById(`sticker-${s.id}`);
+  if (el) el.textContent = s.text;
+}
+
+/** ツールバー：字体を変える（縦書きでも同じ指定が効く） */
+function stickerFontSet(v) {
+  const s = state.stickers.find(s => s.id === state.selectedStickerId);
+  if (!s || s.type !== 'text') return;
+  s.fontKey = fontKeyOf(v);
+  updateStickerEl(s.id);
+}
+
+/** ツールバー：横書き / 縦書きの切替（位置・サイズ・角度・重なり順は維持） */
+function stickerDirSet(dir) {
+  const s = state.stickers.find(s => s.id === state.selectedStickerId);
+  if (!s || s.type !== 'text') return;
+  s.direction = (dir === 'vertical') ? 'vertical' : 'horizontal';
+  updateStickerEl(s.id);
+  updateTextDirButtons(s);
+}
+
+/** 横書き / 縦書きボタンの選択状態を反映する */
+function updateTextDirButtons(s) {
+  const h = document.getElementById('st-dir-h');
+  const v = document.getElementById('st-dir-v');
+  if (!h || !v) return;
+  const vertical = (s.direction === 'vertical');
+  h.classList.toggle('on', !vertical);
+  v.classList.toggle('on',  vertical);
+}
+
+/** Re-render all sticker DOM elements */
+function renderStickers() {
+  const layer = document.getElementById('sticker-layer');
+  layer.innerHTML = '';
+  state.stickers.forEach(s => layer.appendChild(makeStickerEl(s)));
+}
+
+/** Create a sticker DOM element */
+function makeStickerEl(s) {
+  const el = document.createElement('div');
+  el.id        = `sticker-${s.id}`;
+  el.className = `sticker${s.id === state.selectedStickerId ? ' s-selected' : ''}`;
+  applyStickerStyle(el, s);
+
+  if (s.type === 'text') {
+    el.classList.add('st-txt');
+    el.textContent = s.text;
+  } else if (s.type === 'image') {
+    el.dataset.kind = (s.subtype === 'photo') ? 'photo' : 'illust';
+    const img = document.createElement('img');
+    // ユーザー追加画像は dataURL、テンプレ画像は assets/illustrations/ を参照する
+    img.src = s.dataUrl ? s.dataUrl : `${ILLUST_DIR}/${s.src}.png`;
+    img.alt = s.name || s.src || '';
+    img.draggable = false;
+    el.appendChild(img);
+  } else {
+    el.textContent = s.emoji;
+  }
+
+  // Pointer down → start drag
+  el.addEventListener('mousedown',  e => stickerPointerDown(e, s.id));
+  el.addEventListener('touchstart', e => stickerPointerDown(e, s.id), { passive: false });
+
+  syncPhotoHandles(s.id, el);
+  return el;
+}
+
+function applyStickerStyle(el, s) {
+  if (s.type === 'text') {
+    const wm = (s.direction === 'vertical') ? 'vertical-rl' : 'horizontal-tb';
+    el.style.cssText = fontStyle(s.fontKey) + `
+      position: absolute;
+      left: ${s.x}px;
+      top:  ${s.y}px;
+      font-size: ${s.size}px;
+      transform: rotate(${s.rotate}deg);
+      z-index: ${s.zIndex};
+      cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      line-height: 1.25;
+      white-space: pre;
+      writing-mode: ${wm};
+      -webkit-writing-mode: ${wm};
+      display: block;
+    `;
+    return;
+  }
+  if (s.type === 'image') {
+    el.style.cssText = `
+      position: absolute;
+      left: ${s.x}px;
+      top:  ${s.y}px;
+      width: ${s.size}px;
+      height: auto;
+      transform: rotate(${s.rotate}deg);
+      z-index: ${s.zIndex};
+      cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      line-height: 0;
+      display: block;
+    `;
+    return;
+  }
+  el.style.cssText = `
+    position: absolute;
+    left: ${s.x}px;
+    top:  ${s.y}px;
+    font-size: ${s.size}px;
+    transform: rotate(${s.rotate}deg);
+    z-index: ${s.zIndex};
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    line-height: 1;
+    width: ${s.size + 8}px;
+    height: ${s.size + 8}px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  `;
+}
+
+/** Update a single sticker element's position/style without full re-render */
+function updateStickerEl(id) {
+  const s  = state.stickers.find(s => s.id === id);
+  const el = document.getElementById(`sticker-${id}`);
+  if (!s || !el) return;
+  applyStickerStyle(el, s);
+  el.className = `sticker${s.type === 'text' ? ' st-txt' : ''}`
+               + `${id === state.selectedStickerId ? ' s-selected' : ''}`;
+  syncPhotoHandles(id, el);
+}
+
+/** Select a sticker and show toolbar */
+function selectSticker(id) {
+  deselectGridPhoto();          // セル用ツールバーとは排他にする
+  const prev = state.selectedStickerId;
+  state.selectedStickerId = id;
+  if (prev) updateStickerEl(prev);
+  updateStickerEl(id);
+
+  const s = state.stickers.find(s => s.id === id);
+  if (!s) return;
+
+  const badge  = document.getElementById('st-emoji');
+  const slider = document.getElementById('st-size');
+  const tgrp   = document.getElementById('st-text-group');
+  tgrp.style.display = (s.type === 'text') ? 'flex' : 'none';
+  // 自動レイアウトから移してきた写真だけ「戻す」を出す
+  document.getElementById('st-back-btn').style.display = s.from ? 'inline-block' : 'none';
+
+  if (s.type === 'text') {
+    badge.textContent   = '✏️';
+    badge.style.cssText = '';
+    document.getElementById('st-text').value = s.text;
+    const fsel = document.getElementById('st-font');
+    if (fsel) fsel.value = fontKeyOf(s.fontKey);
+    updateTextDirButtons(s);
+    slider.min = TEXT_MIN_SIZE; slider.max = TEXT_MAX_SIZE; slider.step = 1;
+  } else if (s.type === 'image') {
+    // 画像スタンプ：小さなプレビューと名称を表示し、スライダーを大きめの範囲へ
+    const thumb = document.createElement('img');
+    thumb.className = 'st-thumb';
+    if (s.dataUrl) {
+      thumb.src = s.dataUrl;
+    } else {
+      thumb.src   = `${ILLUST_DIR}/thumbs/${s.src}.png`;
+      thumb.onerror = function () { this.onerror = null; this.src = `${ILLUST_DIR}/${s.src}.png`; };
+    }
+    thumb.alt = s.name || s.src || '';
+    const nameEl = document.createElement('span');
+    nameEl.className   = 'st-name';
+    nameEl.textContent = s.name || s.src || '画像';
+    badge.innerHTML = '';
+    badge.appendChild(thumb);
+    badge.appendChild(nameEl);
+    badge.style.cssText = 'display:flex;align-items:center;gap:6px;max-width:230px;overflow:hidden;';
+    if (s.subtype === 'photo') { slider.min = FREE_PHOTO_MIN; slider.max = FREE_PHOTO_MAX; slider.step = 10; }
+    else                       { slider.min = 40; slider.max = 400; slider.step = 10; }
+  } else {
+    badge.textContent = s.emoji;
+    badge.style.cssText = '';
+    slider.min = 16; slider.max = 120; slider.step = 4;
+  }
+  slider.value                                          = s.size;
+  document.getElementById('st-rotate').value            = s.rotate;
+  document.getElementById('sticker-toolbar').style.display = 'flex';
+}
+
+/** Deselect current sticker */
+function deselectSticker() {
+  const prev = state.selectedStickerId;
+  state.selectedStickerId = null;
+  if (prev) updateStickerEl(prev);
+  document.getElementById('sticker-toolbar').style.display = 'none';
+  document.getElementById('st-text-group').style.display   = 'none';
+  document.getElementById('st-back-btn').style.display     = 'none';
+}
+
+/** Drag handler for mouse + touch */
+function stickerPointerDown(e, id) {
+  if (!e.touches && e.button > 0) return;   // 右クリック・中クリックでは始めない
+  e.preventDefault();
+  e.stopPropagation();
+  selectSticker(id);
+
+  const s     = state.stickers.find(s => s.id === id);
+  if (!s) return;
+
+  const touch   = e.touches ? e.touches[0] : e;
+  const nlEl    = document.getElementById('nl-container');
+  const nlRect  = nlEl.getBoundingClientRect();
+  const offX    = touch.clientX - nlRect.left - s.x;
+  const offY    = touch.clientY - nlRect.top  - s.y;
+
+  function onMove(e) {
+    e.preventDefault();
+    const t    = e.touches ? e.touches[0] : e;
+    const rect = document.getElementById('nl-container').getBoundingClientRect();
+    const nx   = t.clientX - rect.left - offX;
+    const ny   = t.clientY - rect.top  - offY;
+    // Soft clamp (allow partial overflow by half the sticker size)
+    const el   = document.getElementById(`sticker-${id}`);
+    const hw   = (el && el.offsetWidth  ? el.offsetWidth  : s.size + 8) / 2;
+    const hh   = (el && el.offsetHeight ? el.offsetHeight : s.size + 8) / 2;
+    s.x = Math.max(-hw, Math.min(rect.width  - hw, nx));
+    s.y = Math.max(-hh, Math.min(rect.height - hh, ny));
+    updateStickerEl(id);
+  }
+
+  function onUp() {
+    document.removeEventListener('mousemove',  onMove);
+    document.removeEventListener('mouseup',    onUp);
+    document.removeEventListener('touchmove',  onMove);
+    document.removeEventListener('touchend',   onUp);
+  }
+
+  document.addEventListener('mousemove',  onMove);
+  document.addEventListener('mouseup',    onUp);
+  document.addEventListener('touchmove',  onMove, { passive: false });
+  document.addEventListener('touchend',   onUp);
+}
+
+// ------------------------------------------------------------
+// 自由配置写真の直接操作（subtype:'photo' のみ）
+// ------------------------------------------------------------
+
+/**
+ * 選択中の自由配置写真にだけ、四隅のリサイズハンドルと回転ハンドルを付ける。
+ * 既に状態が一致していれば何もしないので、ドラッグ中に毎回呼ばれても安い。
+ */
+function syncPhotoHandles(id, elOpt) {
+  const el = elOpt || document.getElementById(`sticker-${id}`);
+  if (!el) return;
+  const s    = state.stickers.find(s => s.id === id);
+  const want = !!s && s.type === 'image' && s.subtype === 'photo'
+               && id === state.selectedStickerId;
+  const has  = !!el.querySelector('.sk-rot');
+  if (want === has) return;
+
+  el.querySelectorAll('.sk-h, .sk-rot').forEach(h => h.remove());
+  if (!want) return;
+
+  ['nw', 'ne', 'sw', 'se'].forEach(corner => {
+    const h = document.createElement('div');
+    h.className = `sk-h ${corner}`;
+    h.addEventListener('mousedown', e => photoResizeStart(e, id));
+    el.appendChild(h);
+  });
+  const rot = document.createElement('div');
+  rot.className = 'sk-rot';
+  rot.title = '回転（Shiftで15度ずつ）';
+  rot.addEventListener('mousedown', e => photoRotateStart(e, id));
+  el.appendChild(rot);
+}
+
+/**
+ * 四隅ハンドルで拡大縮小する。中心を固定し、縦横比を維持する。
+ * 回転は中心まわりなので、中心固定なら回転角に関係なく同じ式で扱える。
+ */
+function photoResizeStart(e, id) {
+  if (e.button > 0) return;              // 右クリック・中クリックでは始めない
+  e.preventDefault();
+  e.stopPropagation();                   // 親の移動処理を発火させない
+  selectSticker(id);
+
+  const s  = state.stickers.find(s => s.id === id);
+  const el = document.getElementById(`sticker-${id}`);
+  if (!s || !el) return;
+
+  const nl     = document.getElementById('nl-container');
+  const w0     = el.offsetWidth;
+  const h0     = el.offsetHeight;
+  const cx     = s.x + w0 / 2;           // nl-container 内の中心（固定する点）
+  const cy     = s.y + h0 / 2;
+  const aspect = w0 ? h0 / w0 : 1;       // 縦横比は維持する
+  const size0  = s.size;
+  const r0     = nl.getBoundingClientRect();
+  const d0     = Math.hypot((e.clientX - r0.left) - cx, (e.clientY - r0.top) - cy) || 1;
+
+  function onMove(ev) {
+    ev.preventDefault();
+    const r  = nl.getBoundingClientRect();
+    const d  = Math.hypot((ev.clientX - r.left) - cx, (ev.clientY - r.top) - cy);
+    let size = Math.round(size0 * d / d0);
+    size = Math.max(FREE_PHOTO_MIN, Math.min(FREE_PHOTO_MAX, size));
+    s.size = size;
+    s.x = Math.round(cx - size / 2);
+    s.y = Math.round(cy - size * aspect / 2);
+    updateStickerEl(id);
+    const sl = document.getElementById('st-size');
+    if (sl) sl.value = size;             // ツールバーと表示を合わせる
+  }
+  bindDragEnd(onMove);
+}
+
+/** 回転ハンドルで自由に回転する。Shift押下中は15度刻み。 */
+function photoRotateStart(e, id) {
+  if (e.button > 0) return;
+  e.preventDefault();
+  e.stopPropagation();
+  selectSticker(id);
+
+  const s  = state.stickers.find(s => s.id === id);
+  const el = document.getElementById(`sticker-${id}`);
+  if (!s || !el) return;
+
+  const nl = document.getElementById('nl-container');
+  const cx = s.x + el.offsetWidth  / 2;
+  const cy = s.y + el.offsetHeight / 2;
+  const r0 = nl.getBoundingClientRect();
+  const a0 = Math.atan2((e.clientY - r0.top) - cy, (e.clientX - r0.left) - cx);
+  const deg0 = s.rotate;
+
+  function onMove(ev) {
+    ev.preventDefault();
+    const r = nl.getBoundingClientRect();
+    const a = Math.atan2((ev.clientY - r.top) - cy, (ev.clientX - r.left) - cx);
+    let deg = deg0 + (a - a0) * 180 / Math.PI;
+    if (ev.shiftKey) deg = Math.round(deg / 15) * 15;     // Shiftで15度スナップ
+    deg = ((Math.round(deg) + 180) % 360 + 360) % 360 - 180;
+    s.rotate = deg;
+    updateStickerEl(id);
+    const sl = document.getElementById('st-rotate');
+    if (sl) sl.value = deg;
+  }
+  bindDragEnd(onMove);
+}
+
+/** ハンドルドラッグ中のリスナ登録と後始末（マウスのみ） */
+function bindDragEnd(onMove) {
+  function onUp() {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup',   onUp);
+    window.removeEventListener('blur',        onUp);
+  }
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup',   onUp);
+  window.addEventListener('blur',        onUp);   // ウィンドウ外で離した場合の保険
+}
+
+/** Toolbar: set size from slider */
+function stickerSizeSet(v) {
+  const s = state.stickers.find(s => s.id === state.selectedStickerId);
+  if (!s) return;
+  s.size = v;
+  updateStickerEl(s.id);
+}
+
+/** Toolbar: set rotation from slider */
+function stickerRotateSet(v) {
+  const s = state.stickers.find(s => s.id === state.selectedStickerId);
+  if (!s) return;
+  s.rotate = v;
+  updateStickerEl(s.id);
+}
+
+/** Toolbar: move sticker forward/backward */
+function stickerZ(delta) {
+  const s = state.stickers.find(s => s.id === state.selectedStickerId);
+  if (!s) return;
+  s.zIndex = Math.max(1, s.zIndex + delta * 2);
+  updateStickerEl(s.id);
+}
+
+/** Toolbar: delete selected sticker */
+function stickerDelete() {
+  const id  = state.selectedStickerId;
+  if (!id) return;
+  const el  = document.getElementById(`sticker-${id}`);
+  if (el) el.remove();
+  state.stickers = state.stickers.filter(s => s.id !== id);
+  state.selectedStickerId = null;
+  document.getElementById('sticker-toolbar').style.display = 'none';
+}
+
+// ============================================================
+// PRINT (B5縦1枚に収める)
+// ============================================================
+
+/**
+ * 印刷用の圧縮CSSを <style media="print"> として1枚だけ用意する。
+ * printFit() は採寸のあいだだけ media を 'all' に切り替えて使う。
+ */
+function setupPrintFitStyle() {
+  const base = document.createElement('style');
+  base.id = 'print-base-style';
+  base.media = 'print';
+  base.textContent = PRINT_BASE_CSS;
+  document.head.appendChild(base);
+
+  const fit = document.createElement('style');
+  fit.id = 'print-fit-style';
+  fit.media = 'not all';          // 必要になるまで無効
+  fit.textContent = PRINT_FIT_CSS;
+  document.head.appendChild(fit);
+}
+
+/** 前回の印刷倍率を無効化する（内容が変わったとき） */
+function clearPrintFit() {
+  const nl = document.getElementById('nl-container');
+  const wp = document.getElementById('nl-wrap');
+  if (!nl || !wp) return;
+  nl.style.removeProperty('--print-scale');
+  wp.style.removeProperty('--print-w');
+  wp.style.removeProperty('--print-h');
+}
+
+/**
+ * 紙面（印刷時の実寸 w×h）からはみ出している自由配置写真の枚数を数える。
+ * 画像スタンプ（イラスト）は対象外。
+ */
+function countOutOfPagePhotos(w, h) {
+  let n = 0;
+  state.stickers.forEach(s => {
+    if (s.subtype !== 'photo') return;
+    const el = document.getElementById(`sticker-${s.id}`);
+    const sw = s.size;
+    const sh = (el && el.offsetHeight) ? el.offsetHeight : s.size;
+    if (s.x < 0 || s.y < 0 || s.x + sw > w || s.y + sh > h) n++;
+  });
+  return n;
+}
+
+/**
+ * B5縦1枚に収まる倍率を算出してCSS変数へ渡す（印刷はしない）。
+ *
+ * 採寸は圧縮CSSを一時的に効かせた状態で同期的に行うため、画面には一切描画されない。
+ * 倍率はCSS変数として渡し、@media print の中だけで transform: scale() が効く。
+ * printFit() からも、Cmd+P / Ctrl+P の beforeprint からも呼ばれる。
+ */
+function applyPrintFit() {
+  const nl   = document.getElementById('nl-container');
+  const wrap = document.getElementById('nl-wrap');
+  const baseSt = document.getElementById('print-base-style');
+  const fitSt  = document.getElementById('print-fit-style');
+
+  const availW = (B5_W_MM - B5_MARGIN_MM * 2) * MM_PX;
+  const availH = (B5_H_MM - B5_MARGIN_MM * 2) * MM_PX;
+  const rel    = (sc, bs) => (bs > 0 ? sc / bs : 1);   // 相対縮小率
+
+  // --- 1) まず「圧縮なし」で採寸する ---
+  //     add → 読み取り → 戻す を1タスク内で行うので画面は再描画されない
+  baseSt.media = 'all';
+  let w = nl.offsetWidth;
+  let h = nl.offsetHeight;
+
+  const base  = Math.min(availW / w, 1);           // 幅だけB5に合わせた状態
+  let scale   = Math.min(availW / w, availH / h, 1);
+  let ratio   = rel(scale, base);
+  let compressed = false;
+
+  // --- 2) 収まらないときだけ圧縮を使う ---
+  //     圧縮は本文の高さと段組みを変えるため、絶対配置のスタンプ／自由配置写真／自由テキストと
+  //     本文との相対位置がずれる（実測で最大 約500px）。
+  //     そこで、紙面に何か貼っているときは圧縮を使わず「画面どおりの位置」を優先する。
+  //     収まらない場合は倍率が下がり、下の 0.80 未満の警告で内容を減らすよう案内する。
+  //     手動調整した写真がある紙面も同じ理由で圧縮しない（画面と印刷で見た目を揃える）。
+  //     形・トリミングを変えた写真も、枠が4:3→3:2になると見え方が変わるため対象に含める。
+  if (ratio < PRINT_MIN_RATIO && state.stickers.length === 0
+      && !state.photos.some(p => isAdjAdjusted(p) || isCropAdjusted(p))) {
+    fitSt.media = 'all';
+    const w2 = nl.offsetWidth;
+    const h2 = nl.offsetHeight;
+    const s2 = Math.min(availW / w2, availH / h2, 1);
+    const r2 = rel(s2, base);
+    if (r2 > ratio) {
+      w = w2; h = h2; scale = s2; ratio = r2; compressed = true;
+    }
+  }
+  baseSt.media = 'print';
+  fitSt.media  = compressed ? 'print' : 'not all';
+
+  nl.style.setProperty('--print-scale', scale);
+  wrap.style.setProperty('--print-w', Math.ceil(w * scale) + 'px');
+  wrap.style.setProperty('--print-h', Math.ceil(h * scale) + 'px');
+
+  return { w: w, h: h, scale: scale, ratio: ratio, compressed: compressed };
+}
+
+/** 印刷ボタン：倍率を算出し、必要な案内を出してから印刷する */
+function printFit() {
+  const r = applyPrintFit();
+
+  // 案内（いずれも印刷は止めない）
+  const out = countOutOfPagePhotos(r.w, r.h);
+  if (out > 0) {
+    alert(`紙面外にはみ出している写真が${out}枚あります。`);
+  }
+  if (r.ratio < PRINT_MIN_RATIO) {
+    alert('内容量が多いため、B5 1枚に収めると写真や文字が小さくなります。\n' +
+          '写真やコメントを少し減らすと、より見やすく印刷できます。');
+  }
+
+  window.print();
+}
+
+/**
+ * Cmd+P / Ctrl+P で直接印刷されたときも倍率を当てる。
+ * 印刷ボタン経由でも beforeprint は発火するが、同じ値を再計算するだけなので影響はない。
+ * （iPadOS Safari は beforeprint も matchMedia('print') も発火しないため、
+ *   その場合はアプリの「印刷」ボタンを使ってもらう前提）
+ */
+function setupPrintHooks() {
+  window.addEventListener('beforeprint', applyPrintFit);
+  if (window.matchMedia) {
+    const mq = window.matchMedia('print');
+    const onChange = e => { if (e.matches) applyPrintFit(); };
+    if (mq.addEventListener)   mq.addEventListener('change', onChange);
+    else if (mq.addListener)   mq.addListener(onChange);     // 古いSafari
+  }
+}
+
+// ============================================================
+// SAVE / LOAD
+// ============================================================
+function saveJSON() {
+  const y = document.getElementById('pub-year').value;
+  const m = document.getElementById('pub-month').value;
+  const payload = {
+    version: '2.0',
+    savedAt: new Date().toISOString(),
+    meta: {
+      year: y, month: m,
+      facility:   document.getElementById('facility-name').value,
+      mainTitle:  document.getElementById('nl-main-title').textContent,
+      subtitle:   document.getElementById('nl-subtitle').textContent,
+      comment:    document.getElementById('nl-intro-text').textContent,
+      theme:      state.theme,
+      layoutMode: state.layoutMode,
+      logoMode:   state.logoMode,
+      headFont:   state.headFont, headSize: state.headSize,
+      footFont:   state.footFont, footSize: state.footSize,
+    },
+    customCategories: state.customCategories.map(c =>
+      c.color ? { id: c.id, name: c.name, color: c.color } : { id: c.id, name: c.name }),
+    photos: state.photos.map(p => {
+      const o = {
+        id: p.id, name: p.name, category: p.category,
+        width: p.width, height: p.height,
+        sizeOverride: p.sizeOverride || '',
+        dataUrl: p.dataUrl,
+      };
+      if (isAdjAdjusted(p)) o.adj = p.adj;   // 枠そのものの手動調整（初期値だけなら書かない）
+      if (p.crop) o.crop = p.crop;       // 枠の中の写真（形・トリミング）
+      if (p.frame && p.frame !== 'none') o.frame = p.frame;   // 縁（フレーム）
+      return o;
+    }),
+    stickers: state.stickers.map(s => {
+      if (s.type === 'text') {
+        return { id: s.id, type: 'text', text: s.text, direction: s.direction,
+                 fontKey: fontKeyOf(s.fontKey),
+                 x: s.x, y: s.y, size: s.size, rotate: s.rotate, zIndex: s.zIndex };
+      }
+      if (s.type !== 'image') {
+        return { id: s.id, emoji: s.emoji,
+                 x: s.x, y: s.y, size: s.size, rotate: s.rotate, zIndex: s.zIndex };
+      }
+      const img = { id: s.id, type: 'image', name: s.name,
+                    x: s.x, y: s.y, size: s.size, rotate: s.rotate, zIndex: s.zIndex };
+      // テンプレ画像はファイル名、ユーザー追加画像は dataURL で保存する
+      if (s.src) img.src = s.src; else img.dataUrl = s.dataUrl;
+      if (s.subtype) img.subtype = s.subtype;   // 自由配置写真の目印
+      if (s.from)    img.from    = s.from;      // 自動レイアウトへ戻すための元情報
+      return img;
+    }),
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
+  if (blob.size > SAVE_WARN_BYTES) {
+    // 保存は止めず、注意だけ促す
+    alert('画像スタンプが多いため、保存ファイルが大きくなっています。保存には少し時間がかかる場合があります。');
+  }
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(blob),
+    download: `広報誌_${y}年${m}月号.json`,
+  });
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function triggerLoad() { document.getElementById('load-input').click(); }
+
+function handleLoad(e) {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      const d = JSON.parse(ev.target.result);
+      if (d.meta) {
+        document.getElementById('pub-year').value      = d.meta.year      || '';
+        document.getElementById('pub-month').value     = d.meta.month     || '';
+        document.getElementById('facility-name').value = d.meta.facility  || '';
+        document.getElementById('nl-main-title').textContent = d.meta.mainTitle || 'あっと峰夢';
+        document.getElementById('nl-subtitle').textContent   = d.meta.subtitle  || '';
+        document.getElementById('nl-intro-text').textContent = d.meta.comment   || '';
+        if (d.meta.layoutMode) {
+          state.layoutMode = d.meta.layoutMode;
+          document.getElementById('layout-mode').value = d.meta.layoutMode;
+        }
+        state.logoMode = normalizeLogoMode(d.meta.logoMode);
+        state.headFont = fontKeyOf(d.meta.headFont);
+        state.footFont = d.meta.footFont ? fontKeyOf(d.meta.footFont) : 'gothic';
+        state.headSize = HEAD_SIZES[d.meta.headSize] ? d.meta.headSize : 'normal';
+        state.footSize = FOOT_SIZES[d.meta.footSize] ? d.meta.footSize : 'normal';
+        setTheme(d.meta.theme || 'spring', false);
+      }
+      state.customCategories = normalizeCustomCats(d.customCategories);
+      state.photos   = (d.photos   || []).map(p => {
+        const q = { ...p, sizeOverride: p.sizeOverride || '' };
+        const a = normalizeAdj(p.adj);
+        if (a) q.adj = a; else delete q.adj;
+        const cr = normalizeCrop(p.crop);
+        if (cr) q.crop = cr; else delete q.crop;
+        const fr = normalizeFrame(p.frame);
+        if (fr) q.frame = fr; else delete q.frame;
+        return q;
+      });
+      state.stickers = normalizeStickers(d.stickers);
+      updateDate();
+      updateFacility();
+      applyLogo();
+      applyPaperFonts();
+      syncPaperControls();
+      renderCatManager();
+      renderPhotoList();
+      generateLayout();
+      deselectSticker();   // 読込前の選択状態・ツールバーを持ち越さない
+      renderStickers();
+      clearPrintFit();
+      alert('データを読み込みました！');
+    } catch (_) {
+      alert('読み込みに失敗しました。正しいJSONファイルを選択してください。');
+    }
+  };
+  r.readAsText(f);
+  e.target.value = '';
+}
+
+// ============================================================
+// START
+// ============================================================
+init();
+</script>
+</body>
+</html>
