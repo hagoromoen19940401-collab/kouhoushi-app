@@ -1221,6 +1221,20 @@ const PRINT_FIT_CSS = `
   #newsletter .pg-2 { grid-template-columns: repeat(3,1fr); }
 `;
 
+/**
+ * 通常の圧縮後も高さが余る過密紙面だけ、分類見出しを写真の左へ移す追加圧縮。
+ * スタンプや手動調整写真がない自動レイアウトに限って applyPrintFit() が有効化する。
+ */
+const PRINT_DENSE_CSS = `
+  #newsletter .nl-section {
+    display: grid; grid-template-columns: 96px minmax(0, 1fr);
+    column-gap: 8px; align-items: start; margin-bottom: 6px;
+  }
+  #newsletter .nl-sec-header { margin-bottom: 0; align-self: start; }
+  #newsletter .nl-sec-line   { display: none; }
+  #newsletter .nl-sec-title  { white-space: normal; overflow-wrap: anywhere; padding: 4px 8px; }
+`;
+
 const MONTHLY_STAMPS = {
    1: ['⛄','🎍','🎋','❄️','🌨️'],
    2: ['💝','💕','⛄','❄️','🎀'],
@@ -3963,6 +3977,12 @@ function setupPrintFitStyle() {
   fit.media = 'not all';          // 必要になるまで無効
   fit.textContent = PRINT_FIT_CSS;
   document.head.appendChild(fit);
+
+  const dense = document.createElement('style');
+  dense.id = 'print-dense-style';
+  dense.media = 'not all';        // 通常の圧縮後も高さが余るときだけ有効
+  dense.textContent = PRINT_DENSE_CSS;
+  document.head.appendChild(dense);
 }
 
 /** 前回の印刷倍率を無効化する（内容が変わったとき） */
@@ -4003,6 +4023,7 @@ function applyPrintFit() {
   const wrap = document.getElementById('nl-wrap');
   const baseSt = document.getElementById('print-base-style');
   const fitSt  = document.getElementById('print-fit-style');
+  const denseSt = document.getElementById('print-dense-style');
 
   const availW = (B5_W_MM - B5_MARGIN_MM * 2) * MM_PX;
   const availH = (B5_H_MM - B5_MARGIN_MM * 2) * MM_PX;
@@ -4011,6 +4032,7 @@ function applyPrintFit() {
   // --- 1) まず「圧縮なし」で採寸する ---
   //     前回の圧縮CSS・transform・wrapperサイズを持ち越さず、毎回同じ素の状態から測る。
   fitSt.media = 'not all';
+  denseSt.media = 'not all';
   clearPrintFit();
   baseSt.media = 'all';
   let w = Math.max(nl.scrollWidth, nl.offsetWidth);
@@ -4020,6 +4042,7 @@ function applyPrintFit() {
   let scale   = Math.min(availW / w, availH / h, 1);
   let ratio   = rel(scale, base);
   let compressed = false;
+  let dense = false;
 
   // --- 2) 収まらないときだけ圧縮を使う ---
   //     圧縮は本文の高さと段組みを変えるため、絶対配置のスタンプ／自由配置写真／自由テキストと
@@ -4039,14 +4062,34 @@ function applyPrintFit() {
       w = w2; h = h2; scale = s2; ratio = r2; compressed = true;
     }
   }
+
+  // --- 3) 通常圧縮後も高さ基準で縮小される過密紙面だけ、見出しを写真の左へ置く ---
+  //     compressed の安全条件（スタンプ・手動調整・トリミングなし）を引き継ぎ、
+  //     複数分類の自動レイアウトにだけ追加圧縮を適用する。
+  const sectionCount = document.querySelectorAll('#nl-sections > .nl-section').length;
+  const maxHAtBaseScale = availH / base;
+  if (compressed && h > maxHAtBaseScale
+      && sectionCount > 1 && state.layoutMode === 'auto') {
+    denseSt.media = 'all';
+    const w3 = Math.max(nl.scrollWidth, nl.offsetWidth);
+    const h3 = Math.max(nl.scrollHeight, nl.offsetHeight);
+    const s3 = Math.min(availW / w3, availH / h3, 1);
+    const r3 = rel(s3, base);
+    if (r3 > ratio) {
+      w = w3; h = h3; scale = s3; ratio = r3; dense = true;
+    } else {
+      denseSt.media = 'not all';
+    }
+  }
   baseSt.media = 'print';
   fitSt.media  = compressed ? 'print' : 'not all';
+  denseSt.media = dense ? 'print' : 'not all';
 
   nl.style.setProperty('--print-scale', scale);
   wrap.style.setProperty('--print-w', Math.ceil(w * scale) + 'px');
   wrap.style.setProperty('--print-h', Math.ceil(h * scale) + 'px');
 
-  return { w: w, h: h, scale: scale, ratio: ratio, compressed: compressed };
+  return { w: w, h: h, scale: scale, ratio: ratio, compressed: compressed, dense: dense };
 }
 
 /** 印刷ボタン：倍率を算出し、必要な案内を出してから印刷する */
