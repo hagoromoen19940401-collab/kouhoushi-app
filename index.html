@@ -814,6 +814,13 @@
       <span class="st-label" id="cell-name"></span>
       <div class="st-divider"></div>
       <span class="st-group" id="cell-normal">
+        <span class="st-label">表示方法</span>
+        <select class="cat-select" id="fit-mode-sel" style="width:auto;flex:none" onchange="setFitMode(this.value)">
+          <option value="auto">自動</option>
+          <option value="contain">全体表示</option>
+          <option value="cover">枠いっぱい</option>
+        </select>
+        <div class="st-divider"></div>
         <span class="st-label">形</span>
         <button class="st-btn" id="shp-rect"   onclick="setShape('rect')">四角</button>
         <button class="st-btn" id="shp-circle" onclick="setShape('circle')">丸</button>
@@ -1745,7 +1752,7 @@ const TONE_BY_TYPE = {
 // STATE
 // ============================================================
 const state = {
-  photos: [],          // {id, name, dataUrl, category, width, height, sizeOverride}
+  photos: [],          // {id, name, dataUrl, category, width, height, sizeOverride, fitMode}
   customCategories: [],// ユーザー追加カテゴリ {id:'custom_...', name}
   selectedPhotoId: null,// 直接編集中の自動レイアウト写真（保存しない）
   cropMode: false,      // トリミング操作中か（保存しない）
@@ -1989,6 +1996,7 @@ function processFiles(files) {
           category: autoClass(f.name),
           width: im.width, height: im.height,
           sizeOverride: '',
+          fitMode: 'auto',
         });
         if (++done === imgs.length) renderPhotoList();
       };
@@ -2253,7 +2261,7 @@ function buildGrid(photos, density, featured) {
 function imgTag(p) {
   return `<div class="pc-frame">`
        + `<div class="pc-clip" style="${cropStyle(p)}">`
-       + `<img src="${p.dataUrl}" alt="写真" loading="lazy" draggable="false">`
+       + `<img src="${p.dataUrl}" alt="写真" loading="lazy" draggable="false" style="object-fit:${effectivePhotoFit(p)}">`
        + `</div></div>`;
 }
 
@@ -2331,6 +2339,41 @@ function isCropAdjusted(p) {
   return !!c && (c.shape !== 'rect' || c.top !== 0 || c.right !== 0 || c.bottom !== 0 || c.left !== 0);
 }
 
+// --- 自動レイアウト写真の表示方法 --------------------------------------
+
+const FIT_MODES = ['auto', 'contain', 'cover'];
+
+function normalizeFitMode(v) {
+  return FIT_MODES.indexOf(v) >= 0 ? v : 'auto';
+}
+
+/** トリミング済みなら従来の cover を優先。自動は縦写真だけ全体表示にする。 */
+function effectivePhotoFit(p) {
+  if (isCropAdjusted(p)) return 'cover';
+  const mode = normalizeFitMode(p.fitMode);
+  if (mode !== 'auto') return mode;
+  return (+p.height > +p.width) ? 'contain' : 'cover';
+}
+
+function applyPhotoFit(p) {
+  const cell = photoCellEl(p.id);
+  const img = cell && cell.querySelector('.pc-clip img');
+  if (img) img.style.objectFit = effectivePhotoFit(p);
+}
+
+function setFitMode(v) {
+  const p = selectedPhoto();
+  if (!p) return;
+  p.fitMode = normalizeFitMode(v);
+  applyPhotoFit(p);
+}
+
+function updateFitModeSelect() {
+  const p = selectedPhoto();
+  const el = document.getElementById('fit-mode-sel');
+  if (el) el.value = p ? normalizeFitMode(p.fitMode) : 'auto';
+}
+
 /**
  * 形＋トリミングを1本の clip-path にする。
  * 四角は inset()、丸は「削った後の領域に内接する真円」を ellipse() で表す。
@@ -2363,6 +2406,7 @@ function applyCrop(p) {
   if (!cell) return;
   const clip = cell.querySelector('.pc-clip');
   if (clip) clip.style.cssText = cropStyle(p);
+  applyPhotoFit(p);                     // crop があれば cover、戻せば選択中の表示方法へ戻す
   const c = getCrop(p);
   const put = (sel, css) => { const e = cell.querySelector(sel); if (e) e.style.cssText = css; };
   put('.gc-t.t', `top:calc(${c.top}% - 3px);`);
@@ -2531,6 +2575,7 @@ function selectGridPhoto(id) {
 
   document.getElementById('cell-name').textContent = p.name || '写真';
   document.getElementById('cell-toolbar').style.display = 'flex';
+  updateFitModeSelect();
   updateShapeButtons();
   updateFrameSelect();
   deselectSticker();                       // スタンプ側の選択とは排他にする
@@ -2688,6 +2733,7 @@ function freePlacePhoto(id) {
       width:        p.width,
       height:       p.height,
       sizeOverride: p.sizeOverride || '',
+      fitMode:      normalizeFitMode(p.fitMode),
     },
   };
   state.photos.splice(i, 1);
@@ -2711,6 +2757,7 @@ function backToAutoLayout() {
     width:        s.from.width,
     height:       s.from.height,
     sizeOverride: s.from.sizeOverride || '',
+    fitMode:      normalizeFitMode(s.from.fitMode),
   });
   state.stickers = state.stickers.filter(x => x.id !== s.id);
   deselectSticker();
@@ -2729,6 +2776,7 @@ function normalizeFrom(f) {
     width:        +f.width  || 0,
     height:       +f.height || 0,
     sizeOverride: f.sizeOverride === 'wide' ? 'wide' : '',
+    fitMode:      normalizeFitMode(f.fitMode),
   };
 }
 
@@ -4153,6 +4201,7 @@ function saveJSON() {
         id: p.id, name: p.name, category: p.category,
         width: p.width, height: p.height,
         sizeOverride: p.sizeOverride || '',
+        fitMode: normalizeFitMode(p.fitMode),
         dataUrl: p.dataUrl,
       };
       if (isAdjAdjusted(p)) o.adj = p.adj;   // 枠そのものの手動調整（初期値だけなら書かない）
@@ -4221,7 +4270,7 @@ function handleLoad(e) {
       }
       state.customCategories = normalizeCustomCats(d.customCategories);
       state.photos   = (d.photos   || []).map(p => {
-        const q = { ...p, sizeOverride: p.sizeOverride || '' };
+        const q = { ...p, sizeOverride: p.sizeOverride || '', fitMode: normalizeFitMode(p.fitMode) };
         const a = normalizeAdj(p.adj);
         if (a) q.adj = a; else delete q.adj;
         const cr = normalizeCrop(p.crop);
