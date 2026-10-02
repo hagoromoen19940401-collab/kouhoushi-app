@@ -1,0 +1,73 @@
+name: B5 print audit
+
+on:
+  workflow_dispatch:
+
+jobs:
+  generate:
+    name: Generate PDF (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install audit dependencies
+        shell: bash
+        run: |
+          npm install --no-save --no-package-lock playwright-core@1.55.0
+          python -m pip install --disable-pip-version-check pymupdf==1.26.4 pillow==11.3.0
+
+      - name: Generate JIS B5 PDF
+        shell: bash
+        run: node tests/print-audit/generate-b5-pdf.mjs audit-output
+
+      - name: Measure PDF
+        shell: bash
+        run: python tests/print-audit/analyze_pdf.py audit-output
+
+      - name: Show metrics
+        shell: bash
+        run: python -m json.tool audit-output/metrics.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: b5-print-${{ runner.os }}
+          path: audit-output/
+          if-no-files-found: error
+
+  compare:
+    name: Compare Windows and macOS
+    needs: generate
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: b5-print-*
+          path: downloaded
+
+      - name: Build comparison report
+        run: python tests/print-audit/compare_metrics.py downloaded comparison
+
+      - name: Show comparison
+        run: cat comparison/comparison.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: b5-print-comparison
+          path: comparison/
+          if-no-files-found: error

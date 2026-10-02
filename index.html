@@ -4009,10 +4009,12 @@ function applyPrintFit() {
   const rel    = (sc, bs) => (bs > 0 ? sc / bs : 1);   // 相対縮小率
 
   // --- 1) まず「圧縮なし」で採寸する ---
-  //     add → 読み取り → 戻す を1タスク内で行うので画面は再描画されない
+  //     前回の圧縮CSS・transform・wrapperサイズを持ち越さず、毎回同じ素の状態から測る。
+  fitSt.media = 'not all';
+  clearPrintFit();
   baseSt.media = 'all';
-  let w = nl.offsetWidth;
-  let h = nl.offsetHeight;
+  let w = Math.max(nl.scrollWidth, nl.offsetWidth);
+  let h = Math.max(nl.scrollHeight, nl.offsetHeight);
 
   const base  = Math.min(availW / w, 1);           // 幅だけB5に合わせた状態
   let scale   = Math.min(availW / w, availH / h, 1);
@@ -4029,8 +4031,8 @@ function applyPrintFit() {
   if (ratio < PRINT_MIN_RATIO && state.stickers.length === 0
       && !state.photos.some(p => isAdjAdjusted(p) || isCropAdjusted(p))) {
     fitSt.media = 'all';
-    const w2 = nl.offsetWidth;
-    const h2 = nl.offsetHeight;
+    const w2 = Math.max(nl.scrollWidth, nl.offsetWidth);
+    const h2 = Math.max(nl.scrollHeight, nl.offsetHeight);
     const s2 = Math.min(availW / w2, availH / h2, 1);
     const r2 = rel(s2, base);
     if (r2 > ratio) {
