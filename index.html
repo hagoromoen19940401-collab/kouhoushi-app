@@ -93,6 +93,12 @@
       background: #fafafa; border: 1px solid #eee;
     }
     .photo-item.is-wide { border-left: 3px solid #7ec8e3; }
+    .photo-item.auto-overflow { border-color: #f0b64c; background: #fffaf0; }
+    .auto-overflow-note {
+      display: inline-block; margin-top: 3px; padding: 2px 6px;
+      border-radius: 8px; background: #fff0c7; color: #9a6200;
+      font-size: 9px; font-weight: bold;
+    }
     .drag-handle { cursor: grab; color: #ccc; font-size: 13px; flex-shrink: 0; padding-top: 2px; }
     .photo-thumb { width: 42px; height: 42px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
     .photo-info { flex: 1; min-width: 0; }
@@ -358,15 +364,16 @@
     /* ===== Newsletter ===== */
     .nl-wrap { display: flex; justify-content: center; }
     .nl-container {
-      width: 100%; max-width: 780px;
+      width: 780px; max-width: none; height: 1111px;
       position: relative;
-      flex-shrink: 0;
+      flex-shrink: 0; overflow: hidden;
     }
     .newsletter {
-      width: 100%;
+      width: 100%; height: 1111px;
       background: white; border-radius: 10px;
       box-shadow: 0 4px 24px rgba(0,0,0,.13);
-      overflow: hidden;
+      overflow: hidden; display: grid;
+      grid-template-rows: 192px minmax(0, 1fr) 38px;
     }
 
     /* Sticker layer */
@@ -402,6 +409,8 @@
       background: linear-gradient(135deg, var(--primary), var(--secondary));
       padding: 24px 28px 26px;
       position: relative; overflow: hidden; text-align: center;
+      height: 192px; box-sizing: border-box;
+      display: flex; flex-direction: column; justify-content: center;
     }
     .nl-deco-l, .nl-deco-r { position: absolute; top: 8px; font-size: 32px; opacity: .35; line-height: 1; }
     .nl-deco-l { left: 16px; }
@@ -412,7 +421,7 @@
     .nl-main-title { font-size: 34px; font-weight: bold; color: white; text-shadow: 0 2px 6px rgba(0,0,0,.2); letter-spacing: 4px; display: inline-block; }
     /* 季節ロゴ（選んだときだけ表示。文字タイトル・サブタイトル・上段の年月は隠す） */
     .nl-logo { display: block; margin: 4px auto 2px; width: auto; height: auto;
-               max-width: 72%; max-height: 170px; }
+               max-width: 72%; max-height: 164px; }
     .nl-header.has-logo { background: #fff; padding: 10px 24px 12px; }
     /* 季節ロゴの左右装飾。絶対配置なのでヘッダーの高さは増えない。ロゴより後ろ・控えめ。 */
     .hd-deco { position: absolute; top: 50%; transform: translateY(-50%);
@@ -431,7 +440,14 @@
     .nl-date       { font-size: 15px; font-weight: bold; color: white; margin-top: 6px; display: none; }
 
     /* NL Body */
-    .nl-body { padding: 16px 22px; }
+    .nl-body {
+      padding: 16px 22px; min-height: 0; overflow: hidden;
+      position: relative; display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
+    }
+    #newsletter .nl-intro { grid-row: 1; }
+    #newsletter .birthday-corner { grid-row: 2; }
+    #newsletter #nl-sections { grid-row: 3; }
 
     .nl-warning {
       background: #fff3cd; border: 1px solid #ffc107;
@@ -497,6 +513,38 @@
     .pc-span2 { grid-column: span 2; }
     .photo-cell { border-radius: 7px; overflow: hidden; aspect-ratio: 4/3; position: relative; cursor: grab; }
     .photo-cell img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 7px; }
+    /* 固定B5写真エリア。セルは常に4:3を維持し、分類見出しは写真と別行にする。 */
+    #nl-sections.fixed-photo-grid {
+      min-height: 0; overflow: hidden; display: grid; position: relative;
+      grid-template-columns: repeat(var(--fixed-tracks), minmax(0, 1fr));
+      grid-auto-rows: max-content; gap: 20px 4px;
+      align-content: center;
+      padding: 0 var(--fixed-side-pad, 0px);
+    }
+    #nl-sections.fixed-photo-grid > .photo-cell {
+      grid-column: span 2; min-width: 0; width: 100%;
+    }
+    /* 10枚だけ左右を少し広げ、見出しを置ける範囲で行間を詰める。 */
+    #nl-sections.fixed-photo-grid.fixed-10 {
+      margin-left: -8px; margin-right: -8px;
+      padding-top: 20px; box-sizing: border-box;
+      row-gap: 20px; align-content: center;
+    }
+    #nl-sections.fixed-photo-grid.fixed-10.has-birthday { align-content: start; }
+    /* 分類見出しは写真と別の行。写真グリッドの高さには加算しない。 */
+    #nl-sections .fixed-group-header {
+      position: absolute; z-index: 7; height: auto; margin: 0;
+      gap: 5px; pointer-events: none; align-items: center;
+    }
+    #nl-sections .fixed-group-header .nl-sec-title {
+      max-width: 72%; max-height: 18px; box-sizing: border-box;
+      padding: 1px 7px; border-radius: 10px;
+      font-size: 9px; line-height: 1; white-space: normal;
+      overflow: hidden; overflow-wrap: anywhere;
+    }
+    #nl-sections .fixed-group-header .nl-sec-line {
+      min-width: 10px; height: 2px;
+    }
     /* 写真の形とトリミング。clip-path は JS が算出して .pc-clip のインラインに入れる */
     .pc-clip { position: absolute; inset: 0; }
     /* 写真の縁（フレーム）。クリップ済みの絵に filter を掛けるので形の輪郭に沿う。
@@ -564,7 +612,11 @@
     }
 
     /* NL Footer */
-    .nl-footer { background: linear-gradient(135deg, var(--secondary), var(--primary)); padding: 10px 22px; text-align: center; color: white; font-size: 12px; }
+    .nl-footer {
+      background: linear-gradient(135deg, var(--secondary), var(--primary));
+      height: 38px; box-sizing: border-box; padding: 10px 22px;
+      text-align: center; color: white; font-size: 12px;
+    }
 
     /* ===== Modal ===== */
     .modal-ov { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 500; display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -575,7 +627,7 @@
     .modal-count { font-size: 11px; color: #aaa; margin-top: 3px; }
 
     /* ===== Print ===== */
-    @page { size: 182mm 257mm; margin: 6mm; }    /* JIS B5縦（CSSの size:B5 は ISO B5 なので実寸で指定） */
+    @page { size: 182mm 257mm; margin: 3mm; }    /* JIS B5縦（CSSの size:B5 は ISO B5 なので実寸で指定） */
     @media print {
       .app-header, .left, .ctrl-bar, .deco-tray, .sticker-toolbar, .cell-toolbar { display: none !important; }
       body { background: white; }
@@ -604,7 +656,7 @@
     }
 
     /* ===== Responsive ===== */
-    /* screen 限定。印刷時はレイアウト幅がB5の印刷可能幅(約643px)になるため、
+    /* screen 限定。印刷時はレイアウト幅がB5の印刷可能幅(約665px)になるため、
        screen を付けないとこの指定が @media print を上書きしてしまう。 */
     @media screen and (max-width: 760px) {
       .main { flex-direction: column; padding: 10px; }
@@ -1192,55 +1244,33 @@ const BD_DECO = {
   ],
 };
 
-/** 自動レイアウトの推奨枚数（誕生日カテゴリは数えない） */
-const AUTO_LAYOUT_MAX = 8;
+/** 固定B5の自動レイアウト上限（誕生日カテゴリは数えない） */
+const AUTO_LAYOUT_MAX = 10;
+const B5_CANVAS_W      = 780;
+const B5_CANVAS_H      = 1111;
 
 /** B5縦（JIS）の印刷設定 */
 const MM_PX            = 96 / 25.4;
 const B5_W_MM          = 182;
 const B5_H_MM          = 257;
-const B5_MARGIN_MM     = 6;    /* @page の margin と必ず同じ値にすること */
-const PRINT_MIN_RATIO  = 0.80;   // 相対縮小率の下限。これを下回ると警告
+const B5_MARGIN_MM     = 3;    /* @page の margin と必ず同じ値にすること */
 
 /**
  * 印刷の土台。幅を780pxに固定し、画面専用の表示を消す。
- * 印刷時は常に有効。採寸中だけ media を 'all' にして同じ条件で測る。
+ * 画面側も同じ固定寸法なので、印刷時の非表示要素だけをここで指定する。
  */
 const PRINT_BASE_CSS = `
-  #nl-container { width: 780px !important; max-width: none !important; }
+  #nl-container { width: 780px !important; max-width: none !important; height: 1111px !important; }
   #newsletter .nl-warning    { display: none !important; }
   #newsletter .nl-intro-hint { visibility: hidden !important; }
 
 `;
 
 /**
- * 内容が多いときだけ使う圧縮（A+B）。
- * 圧縮すると紙面の高さが変わり、絶対配置のスタンプ／テキストと本文の相対位置がずれるため、
- * printFit() は「圧縮なしで収まるならそのまま印刷する」ようにしている。
+ * 固定B5では画面と印刷で同じレイアウトを使う。
+ * 定数名は既存の印刷処理との互換性のため残す。
  */
-const PRINT_FIT_CSS = `
-  #newsletter .nl-body       { padding: 10px 16px; }
-  #newsletter .nl-section    { margin-bottom: 10px; }
-  #newsletter .nl-sec-header { margin-bottom: 5px; }
-  #newsletter .nl-intro      { padding: 8px 34px 8px 12px; margin-bottom: 10px; line-height: 1.6; }
-  #newsletter .photo-cell    { aspect-ratio: 3/2; }
-  #newsletter .pg-1 { grid-template-columns: repeat(2,1fr); }
-  #newsletter .pg-2 { grid-template-columns: repeat(3,1fr); }
-`;
-
-/**
- * 通常の圧縮後も高さが余る過密紙面だけ、分類見出しを写真の左へ移す追加圧縮。
- * スタンプや手動調整写真がない自動レイアウトに限って applyPrintFit() が有効化する。
- */
-const PRINT_DENSE_CSS = `
-  #newsletter .nl-section {
-    display: grid; grid-template-columns: 96px minmax(0, 1fr);
-    column-gap: 8px; align-items: start; margin-bottom: 6px;
-  }
-  #newsletter .nl-sec-header { margin-bottom: 0; align-self: start; }
-  #newsletter .nl-sec-line   { display: none; }
-  #newsletter .nl-sec-title  { white-space: normal; overflow-wrap: anywhere; padding: 4px 8px; }
-`;
+const PRINT_FIT_CSS = ``;
 
 const MONTHLY_STAMPS = {
    1: ['⛄','🎍','🎋','❄️','🌨️'],
@@ -2173,6 +2203,15 @@ function normalizeCustomCats(list) {
 // ============================================================
 // PHOTO LIST
 // ============================================================
+function autoLayoutNormalPhotos() {
+  return state.photos.filter(p => p.category !== 'birthday').slice(0, AUTO_LAYOUT_MAX);
+}
+
+function isAutoLayoutOverflow(p) {
+  if (p.category === 'birthday') return false;
+  return state.photos.filter(x => x.category !== 'birthday').indexOf(p) >= AUTO_LAYOUT_MAX;
+}
+
 function renderPhotoList() {
   const el = document.getElementById('photo-list');
   document.getElementById('photo-count').textContent = state.photos.length;
@@ -2182,12 +2221,13 @@ function renderPhotoList() {
     return;
   }
   el.innerHTML = state.photos.map((p, i) => `
-    <div class="photo-item${p.sizeOverride==='wide'?' is-wide':''}" draggable="true"
+    <div class="photo-item${p.sizeOverride==='wide'?' is-wide':''}${isAutoLayoutOverflow(p)?' auto-overflow':''}" draggable="true"
          ondragstart="dStart(event,${i})" ondragover="dOver(event,${i})" ondrop="dDrop(event,${i})">
       <span class="drag-handle">⠿</span>
       <img class="photo-thumb" src="${p.dataUrl}" alt="">
       <div class="photo-info">
         <div class="photo-name">${escHtml(p.name)}</div>
+        ${isAutoLayoutOverflow(p)?'<span class="auto-overflow-note">自動配置外・自由配置を利用</span>':''}
         <div class="selects-row">
           <select class="cat-select" onchange="setCat(${i},this.value)">
             ${allCats().map(c=>`<option value="${c.id}"${p.category===c.id?' selected':''}${c.textColor?` style="background:${c.color};color:${c.textColor}"`:''}>${c.icon}${escHtml(c.label)}</option>`).join('')}
@@ -2256,6 +2296,35 @@ function buildGrid(photos, density, featured) {
            ` onmousedown="gridPointerDown(event,'${p.id}')">${imgTag(p)}</div>`;
   }).join('');
   return `<div class="pg pg-${cols}" style="gap:${cfg.gap}px">${cells}</div>`;
+}
+
+function fixedLayoutSpec(count, hasBirthday) {
+  if (hasBirthday) {
+    if (count <= 6) return { bucket: 6, cols: 3, rows: 2, sidePad: 0 };
+    if (count <= 8) return { bucket: 8, cols: 4, rows: 2, sidePad: 0 };
+    return { bucket: 10, cols: 4, rows: 3, sidePad: 0 };
+  }
+  if (count <= 6) return { bucket: 6, cols: 2, rows: 3, sidePad: 82 };
+  if (count <= 8) return { bucket: 8, cols: 3, rows: 3, sidePad: 0 };
+  return { bucket: 10, cols: 4, rows: 3, sidePad: 0 };
+}
+
+/** 分類見出しを、その分類の先頭写真の直前へ写真と重ならないよう配置する。 */
+function positionFixedCategoryHeaders() {
+  const area = document.getElementById('nl-sections');
+  if (!area || !area.classList.contains('fixed-photo-grid')) return;
+  area.querySelectorAll('.fixed-group-header').forEach(header => {
+    const group = header.dataset.fixedGroup;
+    const cells = [...area.querySelectorAll(`.photo-cell[data-fixed-group="${group}"]`)];
+    if (!cells.length) return;
+    const first = cells[0];
+    const rowTop = first.offsetTop;
+    const sameRow = cells.filter(cell => cell.offsetTop === rowTop);
+    const last = sameRow[sameRow.length - 1] || first;
+    header.style.left = first.offsetLeft + 'px';
+    header.style.width = (last.offsetLeft + last.offsetWidth - first.offsetLeft) + 'px';
+    header.style.top = Math.max(0, rowTop - header.offsetHeight - 1) + 'px';
+  });
 }
 
 function imgTag(p) {
@@ -2736,6 +2805,8 @@ function freePlacePhoto(id) {
       fitMode:      normalizeFitMode(p.fitMode),
     },
   };
+  s.x = Math.max(0, Math.min(B5_CANVAS_W - size, s.x));
+  s.y = Math.max(0, Math.min(B5_CANVAS_H - dispH, s.y));
   state.photos.splice(i, 1);
   state.stickers.push(s);
 
@@ -2827,54 +2898,75 @@ function runAutoLayout() {
 }
 
 function generateLayout() {
-  const total   = state.photos.length;
-  const mode    = state.layoutMode;
-  const density = computeDensity(total, mode);
-  const cfg     = DENSITY_CFG[density];
+  const mode = state.layoutMode;
 
   // 誕生日カテゴリは自動レイアウトの枚数に数えない（誕生日コーナーは別枠）
   const normalCount = state.photos.filter(p => p.category !== 'birthday').length;
+  const placedNormal = autoLayoutNormalPhotos();
+  const birthdayPhotos = state.photos.filter(p => p.category === 'birthday');
+  const layoutTotal = placedNormal.length + birthdayPhotos.length;
+  const density = computeDensity(layoutTotal, mode);  // 誕生日コーナーの従来サイズ判定にだけ使う
   const warnEl = document.getElementById('nl-warning');
   if (normalCount > AUTO_LAYOUT_MAX) {
     document.getElementById('nl-warning-text').textContent =
-      `自動レイアウトは${AUTO_LAYOUT_MAX}枚までがおすすめです。` +
-      `追加の写真は「写真を自由配置」から載せることができます。（現在${normalCount}枚）`;
-    warnEl.style.display = 'flex';
-  } else {
-    warnEl.style.display = 'none';
+      `通常写真は先頭${AUTO_LAYOUT_MAX}枚だけ自動配置します。` +
+      `${AUTO_LAYOUT_MAX + 1}枚目以降は写真一覧に保持されます。追加する場合は「写真を自由配置」を使ってください。`;
   }
+  // 固定紙面の高さを変えないよう、案内は写真一覧と上部バッジへ表示する。
+  warnEl.style.display = 'none';
   clearPrintFit();   // 内容が変わったら前回の印刷倍率を無効化
 
   const badge = document.getElementById('layout-badge');
   const wrap  = document.getElementById('layout-badge-wrap');
-  badge.textContent = `${cfg.label} · ${total}枚`;
-  badge.className   = `layout-badge ${cfg.badgeClass}`;
-  wrap.style.display = total ? 'block' : 'none';
+  const spec = fixedLayoutSpec(placedNormal.length, birthdayPhotos.length > 0);
+  const overflowCount = Math.max(0, normalCount - AUTO_LAYOUT_MAX);
+  badge.textContent = `固定B5・${spec.bucket}枚用 · ${placedNormal.length}枚配置`
+    + (overflowCount ? ` · ${overflowCount}枚は自動配置外` : '');
+  badge.className   = `layout-badge ${spec.bucket === 6 ? 'badge-large' : spec.bucket === 8 ? 'badge-medium' : 'badge-small'}`;
+  wrap.style.display = state.photos.length ? 'block' : 'none';
 
   const groups = {};
   allCats().forEach(c => (groups[c.id] = []));
-  state.photos.forEach(p => (groups[p.category] || groups.other).push(p));
+  placedNormal.forEach(p => (groups[p.category] || groups.other).push(p));
 
-  renderBirthday(groups.birthday, density, mode);
+  renderBirthday(birthdayPhotos, density, mode);
 
   deselectGridPhoto();          // セルを作り直すので選択は一度解除する
   const secEl = document.getElementById('nl-sections');
-  secEl.innerHTML = '';
+  secEl.className = `fixed-photo-grid fixed-${spec.bucket}${birthdayPhotos.length ? ' has-birthday' : ''}`;
+  secEl.style.setProperty('--fixed-tracks', spec.cols * 2);
+  secEl.style.setProperty('--fixed-side-pad', spec.sidePad + 'px');
+
+  const ordered = [];
+  let groupNo = 0;
   allSections().forEach(s => {
     const photos = groups[s.id];
     if (!photos || !photos.length) return;
-    const featured = isFeatured(s.id, mode);
-    const sec = document.createElement('div');
-    sec.className = 'nl-section';
-    sec.innerHTML = `
-      <div class="nl-sec-header">
-        <div class="nl-sec-title" style="background:${s.color};${s.textColor?'color:'+s.textColor+';':''}${featured?'font-size:15px;padding:6px 16px':''}">${s.icon ? s.icon + ' ' : ''}${escHtml(s.label)}${featured?' ★':''}</div>
-        <div class="nl-sec-line" style="background:${s.color}"></div>
-      </div>
-      ${buildGrid(photos, density, featured)}
-    `;
-    secEl.appendChild(sec);
+    const group = groupNo++;
+    photos.forEach((p, i) => ordered.push({ p, section: s, first: i === 0, group }));
   });
+
+  const remainder = ordered.length % spec.cols;
+  const lastRowStart = remainder ? ordered.length - remainder : -1;
+  secEl.innerHTML = ordered.map((entry, i) => {
+    const p = entry.p;
+    const center = (i === lastRowStart)
+      ? `grid-column:${spec.cols - remainder + 1}/span 2;` : '';
+    return `<div class="photo-cell${frameClass(p)}" data-pid="${p.id}" data-fixed-group="${entry.group}"`
+      + ` style="${adjStyle(p)}${center}" onmousedown="gridPointerDown(event,'${p.id}')">${imgTag(p)}</div>`;
+  }).join('');
+
+  ordered.filter(entry => entry.first).forEach(entry => {
+    const header = document.createElement('div');
+    header.className = 'nl-sec-header fixed-group-header';
+    header.dataset.fixedGroup = entry.group;
+    header.innerHTML = `<div class="nl-sec-title" style="background:${entry.section.color};${entry.section.textColor?'color:'+entry.section.textColor+';':''}">`
+      + `${entry.section.icon ? entry.section.icon + ' ' : ''}${escHtml(entry.section.label)}</div>`
+      + `<div class="nl-sec-line" style="background:${entry.section.color}"></div>`;
+    secEl.appendChild(header);
+  });
+  positionFixedCategoryHeaders();
+  requestAnimationFrame(positionFixedCategoryHeaders);
 
   if (!state.comment) generateComment();
 }
@@ -2904,6 +2996,8 @@ function applyComment() {
   const v = document.getElementById('comment-ta').value;
   state.comment = v;
   document.getElementById('nl-intro-text').textContent = v;
+  positionFixedCategoryHeaders();
+  requestAnimationFrame(positionFixedCategoryHeaders);
   closeCommentModal();
 }
 function closeCommentModal() { document.getElementById('comment-modal').style.display = 'none'; }
@@ -3545,8 +3639,8 @@ function placeUserImageSticker(im, rawDataUrl, file, pos, index, kind) {
     x = w * 0.5  - size  / 2 + shift + (Math.random() - 0.5) * w * 0.10;
     y = h * 0.30 - dispH / 2 + shift + (Math.random() - 0.5) * h * 0.10;
   }
-  x = Math.max(-size  / 2, Math.min(w - size  / 2, x));
-  y = Math.max(-dispH / 2, Math.min(h - dispH / 2, y));
+  x = Math.max(0, Math.min(w - size, x));
+  y = Math.max(0, Math.min(h - dispH, y));
 
   const s = {
     id:      Date.now() + Math.random(),
@@ -3742,6 +3836,16 @@ function updateStickerEl(id) {
   syncPhotoHandles(id, el);
 }
 
+/** 保存形式を変えず、表示要素の左上座標を固定B5キャンバス内へ戻す。 */
+function clampStickerToCanvas(s, elOpt) {
+  if (!s) return;
+  const el = elOpt || document.getElementById(`sticker-${s.id}`);
+  const w = el && el.offsetWidth  ? el.offsetWidth  : s.size + 8;
+  const h = el && el.offsetHeight ? el.offsetHeight : s.size + 8;
+  s.x = Math.round(Math.max(0, Math.min(B5_CANVAS_W - Math.min(w, B5_CANVAS_W), s.x)));
+  s.y = Math.round(Math.max(0, Math.min(B5_CANVAS_H - Math.min(h, B5_CANVAS_H), s.y)));
+}
+
 /** Select a sticker and show toolbar */
 function selectSticker(id) {
   deselectGridPhoto();          // セル用ツールバーとは排他にする
@@ -3840,6 +3944,8 @@ function stickerPointerDown(e, id) {
   }
 
   function onUp() {
+    clampStickerToCanvas(s, document.getElementById(`sticker-${id}`));
+    updateStickerEl(id);
     document.removeEventListener('mousemove',  onMove);
     document.removeEventListener('mouseup',    onUp);
     document.removeEventListener('touchmove',  onMove);
@@ -3922,7 +4028,10 @@ function photoResizeStart(e, id) {
     const sl = document.getElementById('st-size');
     if (sl) sl.value = size;             // ツールバーと表示を合わせる
   }
-  bindDragEnd(onMove);
+  bindDragEnd(onMove, () => {
+    clampStickerToCanvas(s, document.getElementById(`sticker-${id}`));
+    updateStickerEl(id);
+  });
 }
 
 /** 回転ハンドルで自由に回転する。Shift押下中は15度刻み。 */
@@ -3959,8 +4068,9 @@ function photoRotateStart(e, id) {
 }
 
 /** ハンドルドラッグ中のリスナ登録と後始末（マウスのみ） */
-function bindDragEnd(onMove) {
+function bindDragEnd(onMove, onEnd) {
   function onUp() {
+    if (onEnd) onEnd();
     document.removeEventListener('mousemove', onMove);
     document.removeEventListener('mouseup',   onUp);
     window.removeEventListener('blur',        onUp);
@@ -4009,10 +4119,7 @@ function stickerDelete() {
 // PRINT (B5縦1枚に収める)
 // ============================================================
 
-/**
- * 印刷用の圧縮CSSを <style media="print"> として1枚だけ用意する。
- * printFit() は採寸のあいだだけ media を 'all' に切り替えて使う。
- */
+/** 固定B5用の印刷CSSを用意する。画面と印刷で同じレイアウトを使う。 */
 function setupPrintFitStyle() {
   const base = document.createElement('style');
   base.id = 'print-base-style';
@@ -4022,15 +4129,9 @@ function setupPrintFitStyle() {
 
   const fit = document.createElement('style');
   fit.id = 'print-fit-style';
-  fit.media = 'not all';          // 必要になるまで無効
+  fit.media = 'print';
   fit.textContent = PRINT_FIT_CSS;
   document.head.appendChild(fit);
-
-  const dense = document.createElement('style');
-  dense.id = 'print-dense-style';
-  dense.media = 'not all';        // 通常の圧縮後も高さが余るときだけ有効
-  dense.textContent = PRINT_DENSE_CSS;
-  document.head.appendChild(dense);
 }
 
 /** 前回の印刷倍率を無効化する（内容が変わったとき） */
@@ -4059,85 +4160,26 @@ function countOutOfPagePhotos(w, h) {
   return n;
 }
 
-/**
- * B5縦1枚に収まる倍率を算出してCSS変数へ渡す（印刷はしない）。
- *
- * 採寸は圧縮CSSを一時的に効かせた状態で同期的に行うため、画面には一切描画されない。
- * 倍率はCSS変数として渡し、@media print の中だけで transform: scale() が効く。
- * printFit() からも、Cmd+P / Ctrl+P の beforeprint からも呼ばれる。
- */
+/** 固定780×1111pxキャンバスをB5の使用可能幅176mmへ合わせる。 */
 function applyPrintFit() {
   const nl   = document.getElementById('nl-container');
   const wrap = document.getElementById('nl-wrap');
-  const baseSt = document.getElementById('print-base-style');
-  const fitSt  = document.getElementById('print-fit-style');
-  const denseSt = document.getElementById('print-dense-style');
-
   const availW = (B5_W_MM - B5_MARGIN_MM * 2) * MM_PX;
-  const availH = (B5_H_MM - B5_MARGIN_MM * 2) * MM_PX;
-  const rel    = (sc, bs) => (bs > 0 ? sc / bs : 1);   // 相対縮小率
-
-  // --- 1) まず「圧縮なし」で採寸する ---
-  //     前回の圧縮CSS・transform・wrapperサイズを持ち越さず、毎回同じ素の状態から測る。
-  fitSt.media = 'not all';
-  denseSt.media = 'not all';
+  positionFixedCategoryHeaders();
   clearPrintFit();
-  baseSt.media = 'all';
-  let w = Math.max(nl.scrollWidth, nl.offsetWidth);
-  let h = Math.max(nl.scrollHeight, nl.offsetHeight);
-
-  const base  = Math.min(availW / w, 1);           // 幅だけB5に合わせた状態
-  let scale   = Math.min(availW / w, availH / h, 1);
-  let ratio   = rel(scale, base);
-  let compressed = false;
-  let dense = false;
-
-  // --- 2) 収まらないときだけ圧縮を使う ---
-  //     圧縮は本文の高さと段組みを変えるため、絶対配置のスタンプ／自由配置写真／自由テキストと
-  //     本文との相対位置がずれる（実測で最大 約500px）。
-  //     そこで、紙面に何か貼っているときは圧縮を使わず「画面どおりの位置」を優先する。
-  //     収まらない場合は倍率が下がり、下の 0.80 未満の警告で内容を減らすよう案内する。
-  //     手動調整した写真がある紙面も同じ理由で圧縮しない（画面と印刷で見た目を揃える）。
-  //     形・トリミングを変えた写真も、枠が4:3→3:2になると見え方が変わるため対象に含める。
-  if (ratio < PRINT_MIN_RATIO && state.stickers.length === 0
-      && !state.photos.some(p => isAdjAdjusted(p) || isCropAdjusted(p))) {
-    fitSt.media = 'all';
-    const w2 = Math.max(nl.scrollWidth, nl.offsetWidth);
-    const h2 = Math.max(nl.scrollHeight, nl.offsetHeight);
-    const s2 = Math.min(availW / w2, availH / h2, 1);
-    const r2 = rel(s2, base);
-    if (r2 > ratio) {
-      w = w2; h = h2; scale = s2; ratio = r2; compressed = true;
-    }
-  }
-
-  // --- 3) 通常圧縮後も高さ基準で縮小される過密紙面だけ、見出しを写真の左へ置く ---
-  //     compressed の安全条件（スタンプ・手動調整・トリミングなし）を引き継ぎ、
-  //     複数分類の自動レイアウトにだけ追加圧縮を適用する。
-  const sectionCount = document.querySelectorAll('#nl-sections > .nl-section').length;
-  const maxHAtBaseScale = availH / base;
-  if (compressed && h > maxHAtBaseScale
-      && sectionCount > 1 && state.layoutMode === 'auto') {
-    denseSt.media = 'all';
-    const w3 = Math.max(nl.scrollWidth, nl.offsetWidth);
-    const h3 = Math.max(nl.scrollHeight, nl.offsetHeight);
-    const s3 = Math.min(availW / w3, availH / h3, 1);
-    const r3 = rel(s3, base);
-    if (r3 > ratio) {
-      w = w3; h = h3; scale = s3; ratio = r3; dense = true;
-    } else {
-      denseSt.media = 'not all';
-    }
-  }
-  baseSt.media = 'print';
-  fitSt.media  = compressed ? 'print' : 'not all';
-  denseSt.media = dense ? 'print' : 'not all';
+  const w = B5_CANVAS_W;
+  const h = B5_CANVAS_H;
+  const scale = Math.min(availW / w, 1);
 
   nl.style.setProperty('--print-scale', scale);
   wrap.style.setProperty('--print-w', Math.ceil(w * scale) + 'px');
   wrap.style.setProperty('--print-h', Math.ceil(h * scale) + 'px');
 
-  return { w: w, h: h, scale: scale, ratio: ratio, compressed: compressed, dense: dense };
+  return {
+    w, h, scale, ratio: 1,
+    compressed: false, dense: false, filled: false,
+    overflowHeight: Math.max(0, nl.scrollHeight - B5_CANVAS_H),
+  };
 }
 
 /** 印刷ボタン：倍率を算出し、必要な案内を出してから印刷する */
@@ -4149,11 +4191,6 @@ function printFit() {
   if (out > 0) {
     alert(`紙面外にはみ出している写真が${out}枚あります。`);
   }
-  if (r.ratio < PRINT_MIN_RATIO) {
-    alert('内容量が多いため、B5 1枚に収めると写真や文字が小さくなります。\n' +
-          '写真やコメントを少し減らすと、より見やすく印刷できます。');
-  }
-
   window.print();
 }
 
