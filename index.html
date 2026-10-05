@@ -368,6 +368,19 @@
       position: relative;
       flex-shrink: 0; overflow: hidden;
     }
+    @media screen {
+      .nl-wrap {
+        display: block; position: relative; overflow: hidden;
+        width: var(--screen-canvas-w, 780px);
+        height: var(--screen-canvas-h, 1111px);
+        margin-left: auto; margin-right: auto;
+      }
+      .nl-container {
+        position: absolute; top: 0; left: 0;
+        transform: scale(var(--screen-canvas-scale, 1));
+        transform-origin: top left;
+      }
+    }
     .newsletter {
       width: 100%; height: 1111px;
       background: white; border-radius: 10px;
@@ -517,20 +530,30 @@
     #nl-sections.fixed-photo-grid {
       min-height: 0; overflow: hidden; display: grid; position: relative;
       grid-template-columns: repeat(var(--fixed-tracks), minmax(0, 1fr));
-      grid-auto-rows: max-content; gap: 20px 4px;
+      grid-auto-rows: max-content; gap: 30px 4px;
       align-content: center;
-      padding: 0 var(--fixed-side-pad, 0px);
+      padding: 8px var(--fixed-side-pad, 0px) 0; box-sizing: border-box;
     }
     #nl-sections.fixed-photo-grid > .photo-cell {
       grid-column: span 2; min-width: 0; width: 100%;
     }
-    /* 10枚だけ左右を少し広げ、見出しを置ける範囲で行間を詰める。 */
-    #nl-sections.fixed-photo-grid.fixed-10 {
-      margin-left: -8px; margin-right: -8px;
-      padding-top: 20px; box-sizing: border-box;
-      row-gap: 20px; align-content: center;
+    #nl-sections.fixed-photo-grid > .photo-cell.fixed-group-break {
+      width: calc(100% - 8px); margin-left: 8px;
     }
-    #nl-sections.fixed-photo-grid.fixed-10.has-birthday { align-content: start; }
+    /* 7〜12枚は3列。写真エリアの高さに合わせ、左右の余白で4:3を維持する。 */
+    #nl-sections.fixed-photo-grid.fixed-9,
+    #nl-sections.fixed-photo-grid.fixed-12 {
+      padding-top: 25px; box-sizing: border-box;
+      gap: 30px 8px; align-content: center;
+    }
+    #nl-sections.fixed-photo-grid.fixed-9 > .photo-cell.fixed-group-break,
+    #nl-sections.fixed-photo-grid.fixed-12 > .photo-cell.fixed-group-break {
+      width: calc(100% - 12px); margin-left: 12px;
+    }
+    #nl-sections.fixed-photo-grid.fixed-9.has-birthday,
+    #nl-sections.fixed-photo-grid.fixed-12.has-birthday {
+      align-content: start;
+    }
     /* 分類見出しは写真と別の行。写真グリッドの高さには加算しない。 */
     #nl-sections .fixed-group-header {
       position: absolute; z-index: 7; height: auto; margin: 0;
@@ -1091,6 +1114,7 @@ const CATS = [
 ];
 
 const SEC_ORDER = [
+  { id:'birthday', label:'お誕生日',    icon:'🎀', color:'#f48fb1' },
   { id:'event',  label:'行事・イベント', icon:'🎉', color:'#7ec8e3' },
   { id:'season', label:'季節のイベント', icon:'🌸', color:'#ce93d8' },
   { id:'tea',    label:'茶話会',         icon:'🍵', color:'#ffcc80' },
@@ -1244,8 +1268,8 @@ const BD_DECO = {
   ],
 };
 
-/** 固定B5の自動レイアウト上限（誕生日カテゴリは数えない） */
-const AUTO_LAYOUT_MAX = 10;
+/** 固定B5の自動レイアウト上限（すべての分類を含む） */
+const AUTO_LAYOUT_MAX = 12;
 const B5_CANVAS_W      = 780;
 const B5_CANVAS_H      = 1111;
 
@@ -1797,6 +1821,7 @@ const state = {
 };
 
 let activeDecoGroup = 0;
+let screenCanvasObserver = null;
 
 // ============================================================
 // INIT
@@ -1810,6 +1835,7 @@ function init() {
   setTheme(seasonOf(now.getMonth() + 1), false);
   setupUpload();
   setupStickerDrop();
+  setupScreenCanvasScale();
   setupPrintFitStyle();
   setupPrintHooks();
   renderCatPalette();
@@ -1853,6 +1879,43 @@ function init() {
 // ============================================================
 // HELPERS
 // ============================================================
+/** 画面上だけ、固定B5キャンバス全体を右ペインの幅へ収める。 */
+function setupScreenCanvasScale() {
+  const right = document.querySelector('.right');
+  const wrap  = document.getElementById('nl-wrap');
+  if (!right || !wrap) return;
+
+  const update = () => {
+    const available = Math.max(0, right.clientWidth - 16); // 左右8pxの表示余白
+    if (!available) return;
+    const scale = Math.min(1, available / B5_CANVAS_W);
+    wrap.style.setProperty('--screen-canvas-scale', scale);
+    wrap.style.setProperty('--screen-canvas-w',  B5_CANVAS_W * scale + 'px');
+    wrap.style.setProperty('--screen-canvas-h',  B5_CANVAS_H * scale + 'px');
+  };
+
+  update();
+  if (typeof ResizeObserver !== 'undefined') {
+    screenCanvasObserver = new ResizeObserver(update);
+    screenCanvasObserver.observe(right);
+  } else {
+    window.addEventListener('resize', update);
+  }
+}
+
+/** 画面上のポインター位置を、固定780×1111pxキャンバス内の座標へ戻す。 */
+function canvasPoint(clientX, clientY) {
+  const nl = document.getElementById('nl-container');
+  const rect = nl.getBoundingClientRect();
+  const scale = rect.width / (nl.offsetWidth || B5_CANVAS_W) || 1;
+  return { x: (clientX - rect.left) / scale, y: (clientY - rect.top) / scale };
+}
+
+function canvasScreenScale() {
+  const nl = document.getElementById('nl-container');
+  return nl.getBoundingClientRect().width / (nl.offsetWidth || B5_CANVAS_W) || 1;
+}
+
 function seasonOf(m) {
   if ([3,4,5].includes(m))   return 'spring';
   if ([6,7,8].includes(m))   return 'summer';
@@ -2204,12 +2267,11 @@ function normalizeCustomCats(list) {
 // PHOTO LIST
 // ============================================================
 function autoLayoutNormalPhotos() {
-  return state.photos.filter(p => p.category !== 'birthday').slice(0, AUTO_LAYOUT_MAX);
+  return state.photos.slice(0, AUTO_LAYOUT_MAX);
 }
 
 function isAutoLayoutOverflow(p) {
-  if (p.category === 'birthday') return false;
-  return state.photos.filter(x => x.category !== 'birthday').indexOf(p) >= AUTO_LAYOUT_MAX;
+  return state.photos.indexOf(p) >= AUTO_LAYOUT_MAX;
 }
 
 function renderPhotoList() {
@@ -2298,32 +2360,37 @@ function buildGrid(photos, density, featured) {
   return `<div class="pg pg-${cols}" style="gap:${cfg.gap}px">${cells}</div>`;
 }
 
-function fixedLayoutSpec(count, hasBirthday) {
-  if (hasBirthday) {
-    if (count <= 6) return { bucket: 6, cols: 3, rows: 2, sidePad: 0 };
-    if (count <= 8) return { bucket: 8, cols: 4, rows: 2, sidePad: 0 };
-    return { bucket: 10, cols: 4, rows: 3, sidePad: 0 };
-  }
+function fixedLayoutSpec(count) {
   if (count <= 6) return { bucket: 6, cols: 2, rows: 3, sidePad: 82 };
-  if (count <= 8) return { bucket: 8, cols: 3, rows: 3, sidePad: 0 };
-  return { bucket: 10, cols: 4, rows: 3, sidePad: 0 };
+  if (count <= 9) return { bucket: 9, cols: 3, rows: 3, sidePad: 0 };
+  return { bucket: 12, cols: 3, rows: 4, sidePad: 0 };
 }
 
 /** 分類見出しを、その分類の先頭写真の直前へ写真と重ならないよう配置する。 */
 function positionFixedCategoryHeaders() {
   const area = document.getElementById('nl-sections');
   if (!area || !area.classList.contains('fixed-photo-grid')) return;
+  const fittedGrid = area.classList.contains('fixed-9') || area.classList.contains('fixed-12');
+  if (fittedGrid) {
+    const rows = area.classList.contains('fixed-12') ? 4 : 3;
+    const style = getComputedStyle(area);
+    const gap = parseFloat(style.rowGap);
+    const photoHeight = Math.max(0, (area.clientHeight - parseFloat(style.paddingTop) - gap * (rows - 1)) / rows);
+    const sidePad = Math.max(0, (area.clientWidth - photoHeight * 4 / 3 * 3 - 16) / 2);
+    area.style.setProperty('--fixed-side-pad', Math.ceil(sidePad) + 'px');
+  }
   area.querySelectorAll('.fixed-group-header').forEach(header => {
     const group = header.dataset.fixedGroup;
     const cells = [...area.querySelectorAll(`.photo-cell[data-fixed-group="${group}"]`)];
     if (!cells.length) return;
-    const first = cells[0];
+    const first = cells.find(cell => cell.dataset.pid === header.dataset.fixedStart) || cells[0];
     const rowTop = first.offsetTop;
     const sameRow = cells.filter(cell => cell.offsetTop === rowTop);
     const last = sameRow[sameRow.length - 1] || first;
     header.style.left = first.offsetLeft + 'px';
     header.style.width = (last.offsetLeft + last.offsetWidth - first.offsetLeft) + 'px';
-    header.style.top = Math.max(0, rowTop - header.offsetHeight - 1) + 'px';
+    const headerGap = fittedGrid ? 6 : 7;
+    header.style.top = Math.max(0, rowTop - header.offsetHeight - headerGap) + 'px';
   });
 }
 
@@ -2587,15 +2654,16 @@ function trimPointerDown(e, id, side) {
   const c  = ensureCrop(p);
   const w  = cell.offsetWidth  || 1;
   const h  = cell.offsetHeight || 1;
+  const screenScale = canvasScreenScale();
   const x0 = e.clientX, y0 = e.clientY, v0 = c[side];
   const opp = { left: 'right', right: 'left', top: 'bottom', bottom: 'top' }[side];
   bindDragEnd(function (ev) {
     ev.preventDefault();
     let v;
-    if (side === 'left')        v = v0 + (ev.clientX - x0) / w * 100;
-    else if (side === 'right')  v = v0 - (ev.clientX - x0) / w * 100;
-    else if (side === 'top')    v = v0 + (ev.clientY - y0) / h * 100;
-    else                        v = v0 - (ev.clientY - y0) / h * 100;
+    if (side === 'left')        v = v0 + (ev.clientX - x0) / screenScale / w * 100;
+    else if (side === 'right')  v = v0 - (ev.clientX - x0) / screenScale / w * 100;
+    else if (side === 'top')    v = v0 + (ev.clientY - y0) / screenScale / h * 100;
+    else                        v = v0 - (ev.clientY - y0) / screenScale / h * 100;
     const limit = Math.min(CROP_MAX, 90 - c[opp]);
     c[side] = Math.round(Math.max(0, Math.min(limit, v)) * 100) / 100;
     applyCrop(p);
@@ -2681,11 +2749,12 @@ function gridPointerDown(e, id) {
   const a  = ensureAdj(p);
   const w  = cell.offsetWidth  || 1;
   const h  = cell.offsetHeight || 1;
+  const screenScale = canvasScreenScale();
   const x0 = e.clientX, y0 = e.clientY, dx0 = a.dx, dy0 = a.dy;
   bindDragEnd(function (ev) {
     ev.preventDefault();
-    a.dx = dx0 + (ev.clientX - x0) / w;
-    a.dy = dy0 + (ev.clientY - y0) / h;
+    a.dx = dx0 + (ev.clientX - x0) / screenScale / w;
+    a.dy = dy0 + (ev.clientY - y0) / screenScale / h;
     applyAdj(p);
   });
 }
@@ -2770,7 +2839,6 @@ function freePlacePhoto(id) {
   const i = state.photos.findIndex(p => String(p.id) === String(id));
   if (i < 0) return;
   const p = state.photos[i];
-  if (p.category === 'birthday') return;          // 誕生日コーナーは対象外
 
   const cell = photoCellEl(id);
   if (!cell) return;
@@ -2898,18 +2966,13 @@ function runAutoLayout() {
 }
 
 function generateLayout() {
-  const mode = state.layoutMode;
-
-  // 誕生日カテゴリは自動レイアウトの枚数に数えない（誕生日コーナーは別枠）
-  const normalCount = state.photos.filter(p => p.category !== 'birthday').length;
+  // 誕生日も他の分類と同じ写真エリア・枚数上限で配置する。
+  const normalCount = state.photos.length;
   const placedNormal = autoLayoutNormalPhotos();
-  const birthdayPhotos = state.photos.filter(p => p.category === 'birthday');
-  const layoutTotal = placedNormal.length + birthdayPhotos.length;
-  const density = computeDensity(layoutTotal, mode);  // 誕生日コーナーの従来サイズ判定にだけ使う
   const warnEl = document.getElementById('nl-warning');
   if (normalCount > AUTO_LAYOUT_MAX) {
     document.getElementById('nl-warning-text').textContent =
-      `通常写真は先頭${AUTO_LAYOUT_MAX}枚だけ自動配置します。` +
+      `写真は先頭${AUTO_LAYOUT_MAX}枚だけ自動配置します。` +
       `${AUTO_LAYOUT_MAX + 1}枚目以降は写真一覧に保持されます。追加する場合は「写真を自由配置」を使ってください。`;
   }
   // 固定紙面の高さを変えないよう、案内は写真一覧と上部バッジへ表示する。
@@ -2918,22 +2981,22 @@ function generateLayout() {
 
   const badge = document.getElementById('layout-badge');
   const wrap  = document.getElementById('layout-badge-wrap');
-  const spec = fixedLayoutSpec(placedNormal.length, birthdayPhotos.length > 0);
+  const spec = fixedLayoutSpec(placedNormal.length);
   const overflowCount = Math.max(0, normalCount - AUTO_LAYOUT_MAX);
   badge.textContent = `固定B5・${spec.bucket}枚用 · ${placedNormal.length}枚配置`
     + (overflowCount ? ` · ${overflowCount}枚は自動配置外` : '');
-  badge.className   = `layout-badge ${spec.bucket === 6 ? 'badge-large' : spec.bucket === 8 ? 'badge-medium' : 'badge-small'}`;
+  badge.className   = `layout-badge ${spec.bucket === 6 ? 'badge-large' : spec.bucket === 9 ? 'badge-medium' : 'badge-small'}`;
   wrap.style.display = state.photos.length ? 'block' : 'none';
 
   const groups = {};
   allCats().forEach(c => (groups[c.id] = []));
   placedNormal.forEach(p => (groups[p.category] || groups.other).push(p));
 
-  renderBirthday(birthdayPhotos, density, mode);
+  document.getElementById('birthday-corner').style.display = 'none';
 
   deselectGridPhoto();          // セルを作り直すので選択は一度解除する
   const secEl = document.getElementById('nl-sections');
-  secEl.className = `fixed-photo-grid fixed-${spec.bucket}${birthdayPhotos.length ? ' has-birthday' : ''}`;
+  secEl.className = `fixed-photo-grid fixed-${spec.bucket}`;
   secEl.style.setProperty('--fixed-tracks', spec.cols * 2);
   secEl.style.setProperty('--fixed-side-pad', spec.sidePad + 'px');
 
@@ -2950,16 +3013,18 @@ function generateLayout() {
   const lastRowStart = remainder ? ordered.length - remainder : -1;
   secEl.innerHTML = ordered.map((entry, i) => {
     const p = entry.p;
+    const groupBreak = entry.first && i % spec.cols !== 0 ? ' fixed-group-break' : '';
     const center = (i === lastRowStart)
       ? `grid-column:${spec.cols - remainder + 1}/span 2;` : '';
-    return `<div class="photo-cell${frameClass(p)}" data-pid="${p.id}" data-fixed-group="${entry.group}"`
+    return `<div class="photo-cell${frameClass(p)}${groupBreak}" data-pid="${p.id}" data-fixed-group="${entry.group}"`
       + ` style="${adjStyle(p)}${center}" onmousedown="gridPointerDown(event,'${p.id}')">${imgTag(p)}</div>`;
   }).join('');
 
-  ordered.filter(entry => entry.first).forEach(entry => {
+  ordered.filter((entry, i) => entry.first || (spec.bucket >= 9 && i % spec.cols === 0)).forEach(entry => {
     const header = document.createElement('div');
     header.className = 'nl-sec-header fixed-group-header';
     header.dataset.fixedGroup = entry.group;
+    header.dataset.fixedStart = entry.p.id;
     header.innerHTML = `<div class="nl-sec-title" style="background:${entry.section.color};${entry.section.textColor?'color:'+entry.section.textColor+';':''}">`
       + `${entry.section.icon ? entry.section.icon + ' ' : ''}${escHtml(entry.section.label)}</div>`
       + `<div class="nl-sec-line" style="background:${entry.section.color}"></div>`;
@@ -3535,10 +3600,8 @@ function setupStickerDrop() {
     if (!hasDroppedFiles(e)) return;
     e.preventDefault();
     nl.classList.remove('sticker-drop');
-    const rect = nl.getBoundingClientRect();
     // 広報誌へ直接ドロップした画像は「自由配置写真」として扱う
-    addUserImageStickers(e.dataTransfer.files,
-      { x: e.clientX - rect.left, y: e.clientY - rect.top }, 'photo');
+    addUserImageStickers(e.dataTransfer.files, canvasPoint(e.clientX, e.clientY), 'photo');
   }, true);
 
   // 装飾パネル → 中央付近に配置
@@ -3924,22 +3987,22 @@ function stickerPointerDown(e, id) {
 
   const touch   = e.touches ? e.touches[0] : e;
   const nlEl    = document.getElementById('nl-container');
-  const nlRect  = nlEl.getBoundingClientRect();
-  const offX    = touch.clientX - nlRect.left - s.x;
-  const offY    = touch.clientY - nlRect.top  - s.y;
+  const start   = canvasPoint(touch.clientX, touch.clientY);
+  const offX    = start.x - s.x;
+  const offY    = start.y - s.y;
 
   function onMove(e) {
     e.preventDefault();
     const t    = e.touches ? e.touches[0] : e;
-    const rect = document.getElementById('nl-container').getBoundingClientRect();
-    const nx   = t.clientX - rect.left - offX;
-    const ny   = t.clientY - rect.top  - offY;
+    const point = canvasPoint(t.clientX, t.clientY);
+    const nx   = point.x - offX;
+    const ny   = point.y - offY;
     // Soft clamp (allow partial overflow by half the sticker size)
     const el   = document.getElementById(`sticker-${id}`);
     const hw   = (el && el.offsetWidth  ? el.offsetWidth  : s.size + 8) / 2;
     const hh   = (el && el.offsetHeight ? el.offsetHeight : s.size + 8) / 2;
-    s.x = Math.max(-hw, Math.min(rect.width  - hw, nx));
-    s.y = Math.max(-hh, Math.min(rect.height - hh, ny));
+    s.x = Math.max(-hw, Math.min(nlEl.offsetWidth  - hw, nx));
+    s.y = Math.max(-hh, Math.min(nlEl.offsetHeight - hh, ny));
     updateStickerEl(id);
   }
 
@@ -4005,20 +4068,19 @@ function photoResizeStart(e, id) {
   const el = document.getElementById(`sticker-${id}`);
   if (!s || !el) return;
 
-  const nl     = document.getElementById('nl-container');
   const w0     = el.offsetWidth;
   const h0     = el.offsetHeight;
   const cx     = s.x + w0 / 2;           // nl-container 内の中心（固定する点）
   const cy     = s.y + h0 / 2;
   const aspect = w0 ? h0 / w0 : 1;       // 縦横比は維持する
   const size0  = s.size;
-  const r0     = nl.getBoundingClientRect();
-  const d0     = Math.hypot((e.clientX - r0.left) - cx, (e.clientY - r0.top) - cy) || 1;
+  const p0     = canvasPoint(e.clientX, e.clientY);
+  const d0     = Math.hypot(p0.x - cx, p0.y - cy) || 1;
 
   function onMove(ev) {
     ev.preventDefault();
-    const r  = nl.getBoundingClientRect();
-    const d  = Math.hypot((ev.clientX - r.left) - cx, (ev.clientY - r.top) - cy);
+    const p  = canvasPoint(ev.clientX, ev.clientY);
+    const d  = Math.hypot(p.x - cx, p.y - cy);
     let size = Math.round(size0 * d / d0);
     size = Math.max(FREE_PHOTO_MIN, Math.min(FREE_PHOTO_MAX, size));
     s.size = size;
@@ -4045,17 +4107,16 @@ function photoRotateStart(e, id) {
   const el = document.getElementById(`sticker-${id}`);
   if (!s || !el) return;
 
-  const nl = document.getElementById('nl-container');
   const cx = s.x + el.offsetWidth  / 2;
   const cy = s.y + el.offsetHeight / 2;
-  const r0 = nl.getBoundingClientRect();
-  const a0 = Math.atan2((e.clientY - r0.top) - cy, (e.clientX - r0.left) - cx);
+  const p0 = canvasPoint(e.clientX, e.clientY);
+  const a0 = Math.atan2(p0.y - cy, p0.x - cx);
   const deg0 = s.rotate;
 
   function onMove(ev) {
     ev.preventDefault();
-    const r = nl.getBoundingClientRect();
-    const a = Math.atan2((ev.clientY - r.top) - cy, (ev.clientX - r.left) - cx);
+    const p = canvasPoint(ev.clientX, ev.clientY);
+    const a = Math.atan2(p.y - cy, p.x - cx);
     let deg = deg0 + (a - a0) * 180 / Math.PI;
     if (ev.shiftKey) deg = Math.round(deg / 15) * 15;     // Shiftで15度スナップ
     deg = ((Math.round(deg) + 180) % 360 + 360) % 360 - 180;
